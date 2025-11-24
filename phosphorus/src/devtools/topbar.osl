@@ -1,0 +1,45 @@
+
+tabs_scroll = 0
+tabs_width = 0
+
+def update() (
+  goto 0 -5
+  square frame.width - 10 frame.height 10 : c#shared.theme.prim
+  
+  square frame.width frame.height 0 0 1
+  if mouse_touching (
+    self.tabs_scroll += scroll.x.velocity + scroll.y.velocity * scroll.multiplier * 1.5
+  )
+  
+  self.tabs_scroll = min(self.tabs_scroll, self.tabs_width - frame.width)
+  self.tabs_scroll = max(self.tabs_scroll, 0)
+  
+  local x = frame.left - self.tabs_scroll
+  local start = x
+  local menus @= devtools.menus.getEntries()
+  for i menus.len (
+    local menu @= menus[i]
+    
+    local title = menu[1].toTitle()
+    local w = title.len * 8 + 10
+    
+    x += w / 2
+    
+    goto x 0
+    square w - 10 10 10 0 1
+    c devtools.main.menu == menu[1] ? shared.theme.seco shared.theme.prim
+    if mouse_touching (
+      c shared.theme.tert
+      cursor "pointer"
+      if onclick (
+        devtools.main.menu = menu[1]
+      )
+    )
+    pen "size" 2
+    line w / -2 -11 w / 2 -11
+    centext title 8 : c#shared.theme.text
+    
+    x += w / 2
+  )
+  self.tabs_width = x - start
+)

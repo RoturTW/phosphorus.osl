@@ -1,0 +1,58 @@
+
+def drawElement(object element) (
+  self.y -= 15
+  goto 0 self.y
+  square frame.width - 15 30 - 15 10 : c#shared.theme.back hover_c#shared.theme.prim
+  
+  element.dvt_open ??= false
+  
+  if element.children != null or element.kind == "script" (
+    goto frame.left + 15 + self.x self.y
+    square 20 20 0 0 1 : c#fff
+    if mouse_touching (
+      cursor "pointer"
+      if onclick (
+        element.dvt_open = !element.dvt_open
+      )
+    )
+    icon element.dvt_open ? "down" "right" .5 : c#shared.theme.text
+    
+    text element.blockName ?? element.name 10 : chx#15
+    
+    self.x += self.indent
+    self.y -= 15
+    
+    if element.dvt_open (
+      if element.kind == "script" (
+        local content = element.body
+        local lines @= content.split("\n")
+        local line_height = 15
+        local height = lines.len - 1 * line_height + 10
+        
+        self.y -= height / 2
+        goto 0 self.y
+        square frame.width - 15 height - 15 10 : c#shared.theme.back hover_c#shared.theme.prim
+        self.y += height / 2
+        
+        self.y -= 5
+        
+        for i lines.len (
+          self.y -= line_height / 2
+          goto frame.left + 15 + self.x self.y
+          text lines[i].trimText(frame.right - x_position - 17.5 / 8) 8 : c#shared.theme.text
+          self.y -= line_height / 2
+        )
+        
+        self.y -= height
+      ) else (
+        drawElements(element.children)
+      )
+    ) else (
+      // todo
+    )
+    
+    self.x -= self.indent
+  ) else (
+    self.y -= 15
+  )
+)

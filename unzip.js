@@ -6,7 +6,7 @@ const zip = JSON.parse(fs.readFileSync("phosphorus.json", "utf-8"));
 function unzipFile(f, p) {
     if (!fs.existsSync(p))
         fs.mkdirSync(p);
-    console.log(path.join(p, f[1]));
+    console.log(path.join(p, f[1] + f[0]));
     if (f[0] == ".folder") {
         fs.mkdirSync(path.join(p, f[1]));
         for (let i = 0; i < f[2].length; i++) {

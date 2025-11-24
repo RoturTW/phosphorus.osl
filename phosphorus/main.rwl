@@ -1,7 +1,9 @@
 root [color=theme:prim] {
   frame [Horizontal] {
     section [size=100, rounding_tr=20, rounding_br=20] {
-      "fr" [color=theme:seco]
+      "fr" [color=theme:seco],
+      "str",
+      15
     },
     section {
       frame [Vertical] {

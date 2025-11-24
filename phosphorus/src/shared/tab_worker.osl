@@ -1,6 +1,6 @@
 
 def oncreate() (
-  log "woc" self
+  
 )
 
 def onframe() (

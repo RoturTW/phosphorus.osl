@@ -11,7 +11,7 @@ class Document (
   )
   
   def createWorker() (
-    log "create worker"
+    //log "create worker"
     void killWorker()
     self.worker @= worker(shared.tab_worker)
     self.worker.document @= self
@@ -19,7 +19,7 @@ class Document (
   
   def killWorker() (
     if self.worker != null (
-      log "kill worker"
+      //log "kill worker"
       void self.worker.kill()
       self.worker = null
     )

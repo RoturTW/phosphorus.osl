@@ -147,6 +147,8 @@ class RWLContainer extends RWLNode (
 )
 
 class RWLRoot extends RWLContainer (
+  blockName = "root"
+  
   def init(array children, object header) (
     self.children @= children
     self.header @= header
@@ -154,6 +156,8 @@ class RWLRoot extends RWLContainer (
 )
 
 class RWLFrame extends RWLContainer (
+  blockName = "frame"
+  
   def init(array children, object header) (
     self.children @= children
     self.header @= header
@@ -283,6 +287,8 @@ class RWLFrame extends RWLContainer (
 )
 
 class RWLSection extends RWLContainer (
+  blockName = "section"
+  
   def init(array children, object header) (
     self.children @= children
     self.header @= header
@@ -290,7 +296,9 @@ class RWLSection extends RWLContainer (
 )
 
 class RWLScript extends RWLNode (
+  blockName = "script"
   kind = "script"
+  
   def init(body, object header, object inst) (
     self.body @= body
     self.header @= header

@@ -1,7 +1,31 @@
 
 anchor = "r"
-width = 200
+width = 350
+
+menu = "elements"
 
 def update(array area) (
-  void shared.graphics.box(area, #0ff)
+  goto rwl.area.centerX(area) rwl.area.centerY(area)
+  square rwl.area.width(area) - 10 rwl.area.height(area) - 10 10 : c#shared.theme.back
+  
+  local menus @= devtools.menus.getEntries()
+  //log menus
+  
+  local h = 25
+  frame area[1] area[4] area[3] area[4] - h (
+    void devtools.topbar.update()
+  )
+  
+  local menu @= devtools.menus[self.menu]
+  c shared.theme.prim
+  frame area[1] area[4] - h area[3] area[2] [menu.width,menu.height] "devtools_" ++ self.menu (
+    if menu != null (
+      if menu.update != null (
+        void menu.update()
+      )
+    ) else (
+      goto 0 0
+      centext "no open devtools menu" 9 : c#shared.theme.prim
+    )
+  )
 )

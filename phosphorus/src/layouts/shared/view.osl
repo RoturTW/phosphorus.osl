@@ -15,6 +15,8 @@ def render(array area) (
       break
   )
   
+  devtoolsArea[1] += 5
+  
   if layouts.shared.state.currentDocument != null (
     void layouts.shared.state.currentDocument.checkResp()
     void layouts.shared.state.currentDocument.render(contentArea)

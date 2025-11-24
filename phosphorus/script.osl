@@ -59,9 +59,13 @@ object net @= {
 
 object devtools @= {
   main: import("./src/devtools/main.osl"),
+  topbar: import("./src/devtools/topbar.osl"),
   
   menus: {
-  
+    elements: import("./src/devtools/menus/elements.osl"),
+    console: import("./src/devtools/menus/console.osl"),
+    network: import("./src/devtools/menus/network.osl"),
+    storage: import("./src/devtools/menus/storage.osl")
   }
 }
 
@@ -74,6 +78,8 @@ void layouts.shared.state.openTabDocument(document)
 void layouts.shared.state.openTabDocument(document2)
 
 void layouts.shared.state.selectTab(1)
+
+void window.resize(900,500)
 
 mainloop:
   void layouts.chromeLike.main.update()
