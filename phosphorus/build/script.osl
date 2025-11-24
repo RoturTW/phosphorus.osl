@@ -2,6 +2,189 @@ opal_imports = {}
 def import(path) (
   switch path (
 
+case "./src/devtools/menus/storage.osl"
+  class __imports__968375a74382766e626cb371cd10b43a (
+    
+  )
+  return __imports__968375a74382766e626cb371cd10b43a
+case "./src/devtools/menus/network.osl"
+  class __imports__b4ec205ca81f7630cd7f76511fd744fb (
+    
+  )
+  return __imports__b4ec205ca81f7630cd7f76511fd744fb
+case "./src/devtools/menus/console.osl"
+  class __imports__ac7f1c744ff0d794c130cdf96196926d (
+    
+  )
+  return __imports__ac7f1c744ff0d794c130cdf96196926d
+case "./src/devtools/menus/elements.osl"
+  class __imports__7de0f89117b2e081473955ae82bcf430 (
+    number indent = 20
+    
+    number x = 0
+    number y = 0
+    
+    number maxX = 0
+    
+    def drawElements(array elements) (
+      for i elements.len (
+        if elements[i] != null (
+          drawElement(elements[i])
+        )
+        if i < elements.len (
+          text "," 10
+        )
+      )
+    )
+    
+    def drawElement(object element) (
+      if element.children != null or element.kind == "script" (
+        self.y -= 15
+        goto 0 self.y
+        
+        element.dvt_open ??= true
+        
+        goto self.x self.y
+        square 20 20 0 0 1 : c#fff
+        if mouse_touching (
+          cursor "pointer"
+          if onclick (
+            element.dvt_open = !element.dvt_open
+          )
+        )
+        icon element.dvt_open ? "down" "right" .5 : c#shared.theme.text
+        
+        text element.blockName ?? element.name 10 : chx#15
+        if mouse_touching (
+          cursor "pointer"
+          if onclick (
+            element.dvt_open = !element.dvt_open
+          )
+        )
+        
+        self.y -= 15
+        
+        if element.dvt_open (
+          text "{" 10 : chx#10
+          self.maxX = max(self.maxX, x_position)
+          self.x += self.indent
+          
+          if element.kind == "script" (
+            local content = element.body
+            local lines @= content.split("\n")
+            local line_height = 25
+            local height = lines.len - 1 * line_height + 5
+            
+            local cy = self.y - 2.5
+            self.y -= height
+            
+            for i lines.len (
+              cy -= line_height / 2
+              
+              goto self.x cy
+              
+              self.maxX = max(self.maxX, x_position + (lines[i].len * 10))
+              text lines[i].trimText(frame.right - x_position - 17.5 / 8) 10 : c#shared.theme.text
+              
+              cy -= line_height / 2
+            )
+          ) else (
+            drawElements(element.children)
+          )
+          
+          self.x -= self.indent
+          
+          self.y -= 15
+          goto self.x - 5 self.y
+          text "}" 10
+          self.y -= 15
+        ) else (
+          if element.kind == "script" (
+            text "{" 10 : chx#10
+            drawTooLong() : chx#10
+            text "}" 10 : chx#10
+          ) else (
+            text "{" 10 : chx#10
+            drawMiniChildren(element.children) : chx#10
+            text "}" 10 : chx#10
+          )
+          self.maxX = max(self.maxX, x_position)
+        )
+      ) else (
+        self.y -= 15
+        goto self.x self.y
+        drawValue(element.value)
+        self.y -= 15
+      )
+    )
+    
+    def drawValue(object value) (
+      switch value.type (
+        case "str"
+          text value.value.JsonStringify() 10
+          break
+        case "num"
+          text value.value 10
+          break
+      )
+    )
+    
+    def drawMiniChildren(array children) (
+      if children.len == 0 (
+        change_x -20
+        return
+      )
+      
+      change_x 5
+      for i children.len (
+        drawMiniChild(children[i])
+        if i < children.len (
+          text ", " 6
+        )
+      )
+      change_x 5
+      
+      change_x -20
+    )
+    
+    def drawMiniChild(object element) (
+      if element.children != null or element.kind == "script" (
+        text element.blockName ?? element.name 7
+        text "{" 7 : chx#10
+        drawTooLong()
+        text "}" 7 : chx#20
+      ) else (
+        text "Element" 7
+      )
+    )
+    
+    def drawTooLong() (
+      text "..." 8 : chx#5
+      change_x -15
+    )
+    
+    def update() (
+      local document @= layouts.shared.state.currentDocument
+      local elements @= document.rwlInst.elements
+      
+      local s = frame.scroll_h * -1
+      self.x = frame.left + s + 15
+      local startX = self.x - 20
+      self.y = frame.top + frame.scroll
+      local startY = self.y
+      
+      self.width = 0
+      self.maxX = 0
+      
+      if elements != null (
+        drawElements(elements)
+      )
+      
+      self.width = self.maxX - startX
+      self.height = startY - self.y + 5
+    )
+  )
+  return __imports__7de0f89117b2e081473955ae82bcf430
 case "./src/layouts/summit/topbar.osl"
   class __imports__6a477e7780a631dfc33d414269cd6008 (
     def update(array area) (
@@ -349,6 +532,8 @@ case "./src/layouts/shared/view.osl"
           break
       )
       
+      devtoolsArea[1] += 5
+      
       if layouts.shared.state.currentDocument != null (
         void layouts.shared.state.currentDocument.checkResp()
         void layouts.shared.state.currentDocument.render(contentArea)
@@ -508,13 +693,85 @@ case "./src/layouts/shared/state.osl"
     )
   )
   return __imports__d1763f06b30a5d5d9c10608cf0f00c3e
+case "./src/devtools/topbar.osl"
+  class __imports__3261b0e52c0051dec0dc6394c943d033 (
+    tabs_scroll = 0
+    tabs_width = 0
+    
+    def update() (
+      goto 0 -5
+      square frame.width - 10 frame.height 10 : c#shared.theme.prim
+      
+      square frame.width frame.height 0 0 1
+      if mouse_touching (
+        self.tabs_scroll += scroll.x.velocity + scroll.y.velocity * scroll.multiplier * 1.5
+      )
+      
+      self.tabs_scroll = min(self.tabs_scroll, self.tabs_width - frame.width)
+      self.tabs_scroll = max(self.tabs_scroll, 0)
+      
+      local x = frame.left - self.tabs_scroll
+      local start = x
+      local menus @= devtools.menus.getEntries()
+      for i menus.len (
+        local menu @= menus[i]
+        
+        local title = menu[1].toTitle()
+        local w = title.len * 8 + 10
+        
+        x += w / 2
+        
+        goto x 0
+        square w - 10 10 10 0 1
+        c devtools.main.menu == menu[1] ? shared.theme.seco shared.theme.prim
+        if mouse_touching (
+          c shared.theme.tert
+          cursor "pointer"
+          if onclick (
+            devtools.main.menu = menu[1]
+          )
+        )
+        pen "size" 2
+        line w / -2 -11 w / 2 -11
+        centext title 8 : c#shared.theme.text
+        
+        x += w / 2
+      )
+      self.tabs_width = x - start
+    )
+  )
+  return __imports__3261b0e52c0051dec0dc6394c943d033
 case "./src/devtools/main.osl"
   class __imports__87f5572a1b07abb6f61e525f0557da7a (
     anchor = "r"
-    width = 200
+    width = 350
+    
+    menu = "elements"
     
     def update(array area) (
-      void shared.graphics.box(area, #0ff)
+      goto rwl.area.centerX(area) rwl.area.centerY(area)
+      square rwl.area.width(area) - 10 rwl.area.height(area) - 10 10 : c#shared.theme.back
+      
+      local menus @= devtools.menus.getEntries()
+      //log menus
+      
+      local h = 25
+      frame area[1] area[4] area[3] area[4] - h (
+        void devtools.topbar.update()
+      )
+      
+      local menu @= devtools.menus[self.menu]
+      c shared.theme.prim
+      frame area[1] area[4] - h area[3] area[2] [menu.width,menu.height] "devtools_" ++ self.menu (
+        if menu != null (
+          if menu.update != null (
+            void menu.update()
+          )
+        ) else (
+          goto 0 0
+          centext "no open devtools menu" 9 : c#shared.theme.prim
+        )
+      )
     )
   )
   return __imports__87f5572a1b07abb6f61e525f0557da7a
@@ -610,7 +867,7 @@ case "./src/net/fetch.osl"
 case "./src/shared/tab_worker.osl"
   class __imports__ed11349f32bd7389fac05d89b56e016d (
     def oncreate() (
-      log "woc" self
+      
     )
     
     def onframe() (
@@ -773,7 +1030,7 @@ case "./src/shared/document.osl"
       )
       
       def createWorker() (
-        log "create worker"
+        //log "create worker"
         void killWorker()
         self.worker @= worker(shared.tab_worker)
         self.worker.document @= self
@@ -781,7 +1038,7 @@ case "./src/shared/document.osl"
       
       def killWorker() (
         if self.worker != null (
-          log "kill worker"
+          //log "kill worker"
           void self.worker.kill()
           self.worker = null
         )
@@ -3320,6 +3577,8 @@ case "./src/rwl/main.osl"
     )
     
     class RWLRoot extends RWLContainer (
+      blockName = "root"
+      
       def init(array children, object header) (
         self.children @= children
         self.header @= header
@@ -3327,6 +3586,8 @@ case "./src/rwl/main.osl"
     )
     
     class RWLFrame extends RWLContainer (
+      blockName = "frame"
+      
       def init(array children, object header) (
         self.children @= children
         self.header @= header
@@ -3456,6 +3717,8 @@ case "./src/rwl/main.osl"
     )
     
     class RWLSection extends RWLContainer (
+      blockName = "section"
+      
       def init(array children, object header) (
         self.children @= children
         self.header @= header
@@ -3463,7 +3726,9 @@ case "./src/rwl/main.osl"
     )
     
     class RWLScript extends RWLNode (
+      blockName = "script"
       kind = "script"
+      
       def init(body, object header, object inst) (
         self.body @= body
         self.header @= header
@@ -3885,7 +4150,7 @@ case "./src/assets/empty.rwl"
   return "  root {\n    \"grahhh\"\n  }"
 
 case "./main.rwl"
-  return "  root [color=theme:prim] {\n    frame [Horizontal] {\n      section [size=100, rounding_tr=20, rounding_br=20] {\n        \"fr\" [color=theme:seco]\n      },\n      section {\n        frame [Vertical] {\n          section [size=50] {\n            \"maybe?\" [color=theme:text, anchor=\"l\", padding=10, size=15]\n          },\n          section [color=theme:back, rounding=20, margin_r=10, margin_b=10, padding=20] {\n            \"blehhh\" [color=theme:text],\n            \"fr\",\n            \":P\" [anchor=\"bl\",size=5]\n          }\n        }\n      }\n    },\n    script {\n      event(onload) {\n        log(\"blehh\");\n        \n        document.title = \"gay\";\n        document.icon = \"flag-progress\";\n      }\n    }\n  }"
+  return "  root [color=theme:prim] {\n    frame [Horizontal] {\n      section [size=100, rounding_tr=20, rounding_br=20] {\n        \"fr\" [color=theme:seco],\n        \"str\",\n        15\n      },\n      section {\n        frame [Vertical] {\n          section [size=50] {\n            \"maybe?\" [color=theme:text, anchor=\"l\", padding=10, size=15]\n          },\n          section [color=theme:back, rounding=20, margin_r=10, margin_b=10, padding=20] {\n            \"blehhh\" [color=theme:text],\n            \"fr\",\n            \":P\" [anchor=\"bl\",size=5]\n          }\n        }\n      }\n    },\n    script {\n      event(onload) {\n        log(\"blehh\");\n        \n        document.title = \"gay\";\n        document.icon = \"flag-progress\";\n      }\n    }\n  }"
 )
 )
 import as "glass" from "packages"
@@ -3949,9 +4214,13 @@ object net @= {
 
 object devtools @= {
   main: import("./src/devtools/main.osl"),
+  topbar: import("./src/devtools/topbar.osl"),
   
   menus: {
-  
+    elements: import("./src/devtools/menus/elements.osl"),
+    console: import("./src/devtools/menus/console.osl"),
+    network: import("./src/devtools/menus/network.osl"),
+    storage: import("./src/devtools/menus/storage.osl")
   }
 }
 
@@ -3964,6 +4233,8 @@ void layouts.shared.state.openTabDocument(document)
 void layouts.shared.state.openTabDocument(document2)
 
 void layouts.shared.state.selectTab(1)
+
+void window.resize(900,500)
 
 mainloop:
   void layouts.chromeLike.main.update()
