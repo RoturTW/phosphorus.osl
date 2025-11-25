@@ -187,11 +187,11 @@ class Module (
   
   def runEvent(string name, object data) (
     if !self.eventList.contains(name) (
-      return
+      return rtr.value.RTRNullValue()
     )
     
     local ev @= self.events[name]
-    void self.runBlock(ev.body)
+    return self.runBlock(ev.body)
   )
   def runBlock(object block) (
     local elements @= block.elements
@@ -200,6 +200,7 @@ class Module (
     for i elements.len (
       local out @= self.runStatement(elements[i])
       if self.getScopeVar("@return") ?? 0 != 0 (
+        outVal @= self.getScopeVar("@return")
         break
       )
     )
@@ -434,6 +435,7 @@ class RTR (
   def init() (
     self.modules @= {}
     self.console @= []
+    self.ouid = OuidNew()
   )
 
   def addModule(object mod) (

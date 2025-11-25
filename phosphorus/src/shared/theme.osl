@@ -5,6 +5,7 @@ def load() (
   self.seco = user.theme.secondary
   self.tert = user.theme.tertiary
   self.text = user.theme.text
+  self.accent = global_accent
 )
 
 load()

@@ -28,7 +28,7 @@ def topbar() (
 def update() (
   local inst @= self.getInst()
   
-  local y = frame.top
+  local y = frame.top + frame.scroll
   local start = y
   
   for ii inst.console.len (
@@ -37,7 +37,7 @@ def update() (
     local height = lines.len * 20
     
     local col = null
-    if item[1] == "err" (
+    if item[1] == "err" or item[1] == "repl-err" (
       col = #f00
     )
     
@@ -58,10 +58,28 @@ def update() (
       )
     )
     
+    local offsetX = 5
+    
+    if item[1].startsWith("repl") (
+      goto frame.left + offsetX + 5 ly - 15
+      
+      if item[1] == "repl-in" (
+        icon "right" .5 : c#shared.theme.text
+      )
+      if item[1] == "repl-ret" (
+        icon "left" .5 : c#shared.theme.text
+      )
+      if item[1] == "repl-err" (
+        icon "left" .5 : c#shared.theme.text
+      )
+      offsetX += 20
+    )
+    
+    c shared.theme.text
     for i lines.len (
       ly -= 10
-      goto frame.left + 5 ly - 5
-      text lines[i] 10 : c#shared.theme.text
+      goto frame.left + offsetX ly - 5
+      text lines[i] 10
       ly -= 10
     )
     
@@ -73,4 +91,45 @@ def update() (
     goto 0 y
     line frame.left 0 frame.right 0
   )
+  
+  // repl
+  y -= 15
+  goto frame.left + 12.5 y
+  icon "right" .5 : c#shared.theme.text
+  
+  local inputId = "devtools_repl_" ++ inst.ouid
+  goto 12.5 y
+  input frame.width - 35 30 inputId null 0 shared.theme.text : c#shared.theme.back
+  
+  if "enter".onKeyDown() and inputs.selected.id == inputId (
+    local inp = inputs[inputId]
+    
+    void inst.console.append(["repl-in", inp])
+    
+    promiseData = inp
+    promiseData2 @= inst
+    self.runPromise @= Promise.new(def() -> (
+      local parser @= rtr.ast.Parser("event(onload){return(" ++ promiseData ++ ");}")
+      self.ast @= parser.parse()
+      self.mod @= rtr.main.Module(self.ast)
+      void promiseData2.addModule(self.mod)
+      local ret @= mod.runEvent("onload", {})
+      return ret
+    ))
+    
+    inputs[inputId] = ""
+  )
+  
+  if self.runPromise != null (
+    local ret @= self.runPromise.worker.return
+    if ret != null (
+      log ret
+      void inst.console.append(["repl-ret", ret.stringify(true)])
+      self.runPromise = null
+    )
+  )
+  
+  y -= 15
+  
+  self.height = start - y - 10
 )

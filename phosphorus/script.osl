@@ -82,8 +82,8 @@ void layouts.shared.state.selectTab(1)
 void window.resize(900,500)
 
 mainloop:
-  //void layouts.chromeLike.main.update()
-  void layouts.summit.main.update()
+  void layouts.chromeLike.main.update()
+  //void layouts.summit.main.update()
   
   // file dropping
   if file_dropped != 0 (

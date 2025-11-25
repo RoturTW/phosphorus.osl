@@ -20,9 +20,6 @@ root [color=theme:prim] {
   },
   script {
     event(onload) {
-      for(i, range(1,10)) {
-        log(i);
-      }
       
       document.title = "gay";
       document.icon = "flag-progress";

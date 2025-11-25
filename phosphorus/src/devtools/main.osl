@@ -48,7 +48,7 @@ def update(array area, array rawArea) (
   c shared.theme.prim
   local topbarH = 0
   if menu.topbar != null (
-    topbarH = 25
+    topbarH = menu.topbarHeight ?? 25
     frame area[1] area[4] - h area[3] area[4] - h - topbarH (
       void menu.topbar()
     )
@@ -60,7 +60,21 @@ def update(array area, array rawArea) (
   )
   
   c shared.theme.prim
-  frame area[1] area[4] - h - topbarH area[3] area[2] [menu.width,menu.height] "devtools_" ++ self.menu (
+  local bottombarH = 0
+  if menu.bottombar != null (
+    bottombarH = menu.bottombarHeight ?? 25
+    frame area[1] area[4] - h area[3] area[4] - h - bottombarH (
+      void menu.bottombar()
+    )
+    local w = rwl.area.width(area)
+    goto rwl.area.centerX(area) area[2] + bottombarH
+    pen "size" 2
+    line w / -2 1 w / 2 1 : c#shared.theme.prim
+    bottombarH += 1
+  )
+  
+  c shared.theme.prim
+  frame area[1] area[4] - h - topbarH area[3] area[2] + bottombarH [menu.width,menu.height] "devtools_" ++ self.menu (
     if menu != null (
       if menu.update != null (
         void menu.update()
