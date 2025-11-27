@@ -39,9 +39,6 @@ class Document (
   def updateInsts() (
     // inject rwl apis
     void rtr.rwl.addToInst(self, self.rtrInst)
-    
-    // start onloads
-    void self.rtrInst.startModules()
   )
   
   def update(array area) (
@@ -53,7 +50,7 @@ class Document (
       self.worker.area @= area
       if !self.worker.alive (
         self.rwlInst.errored = true
-        self.rwlInst.errormsg = "tab worker died, check code for syntax errors\nyou can also check js console"
+        self.rwlInst.errormsg = "tab worker died, check js console"
       )
     )
     
@@ -97,6 +94,7 @@ class Document (
     void self.createInsts()
     void self.rwlInst.loadFromAst(ast)
     void self.updateInsts()
+    void self.rtrInst.startModules()
   )
   
   def loadText(string text) (

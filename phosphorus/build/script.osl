@@ -43,7 +43,7 @@ case "./src/devtools/menus/console.osl"
     def update() (
       local inst @= self.getInst()
       
-      local y = frame.top
+      local y = frame.top + frame.scroll
       local start = y
       
       for ii inst.console.len (
@@ -52,7 +52,7 @@ case "./src/devtools/menus/console.osl"
         local height = lines.len * 20
         
         local col = null
-        if item[1] == "err" (
+        if item[1] == "err" or item[1] == "repl-err" (
           col = #f00
         )
         
@@ -73,10 +73,28 @@ case "./src/devtools/menus/console.osl"
           )
         )
         
+        local offsetX = 5
+        
+        if item[1].startsWith("repl") (
+          goto frame.left + offsetX + 5 ly - 15
+          
+          if item[1] == "repl-in" (
+            icon "right" .5 : c#shared.theme.text
+          )
+          if item[1] == "repl-ret" (
+            icon "left" .5 : c#shared.theme.text
+          )
+          if item[1] == "repl-err" (
+            icon "left" .5 : c#shared.theme.text
+          )
+          offsetX += 20
+        )
+        
+        c shared.theme.text
         for i lines.len (
           ly -= 10
-          goto frame.left + 5 ly - 5
-          text lines[i] 10 : c#shared.theme.text
+          goto frame.left + offsetX ly - 5
+          text lines[i] 10
           ly -= 10
         )
         
@@ -88,6 +106,47 @@ case "./src/devtools/menus/console.osl"
         goto 0 y
         line frame.left 0 frame.right 0
       )
+      
+      // repl
+      y -= 15
+      goto frame.left + 12.5 y
+      icon "right" .5 : c#shared.theme.text
+      
+      local inputId = "devtools_repl_" ++ inst.ouid
+      goto 12.5 y
+      input frame.width - 35 30 inputId null 0 shared.theme.text : c#shared.theme.back
+      
+      if "enter".onKeyDown() and inputs.selected.id == inputId (
+        local inp = inputs[inputId]
+        
+        void inst.console.append(["repl-in", inp])
+        
+        promiseData = inp
+        promiseData2 @= inst
+        self.runPromise @= Promise.new(def() -> (
+          local parser @= rtr.ast.Parser("event(onload){return(" ++ promiseData ++ ");}")
+          self.ast @= parser.parse()
+          self.mod @= rtr.main.Module(self.ast)
+          void promiseData2.addModule(self.mod)
+          local ret @= mod.runEvent("onload", {})
+          return ret
+        ))
+        
+        inputs[inputId] = ""
+      )
+      
+      if self.runPromise != null (
+        local ret @= self.runPromise.worker.return
+        if ret != null (
+          log ret
+          void inst.console.append(["repl-ret", ret.stringify(true)])
+          self.runPromise = null
+        )
+      )
+      
+      y -= 15
+      
+      self.height = start - y - 10
     )
   )
   return __imports__ac7f1c744ff0d794c130cdf96196926d
@@ -413,6 +472,7 @@ case "./src/layouts/summit/main.osl"
     
     def update() (
       void shared.theme.load()
+      void shared.input.update()
       
       window.show()
       window_colour = #000
@@ -559,6 +619,7 @@ case "./src/layouts/chromeLike/main.osl"
     
     def update() (
       void shared.theme.load()
+      void shared.input.update()
     
       window.show()
       window_colour = shared.theme.back
@@ -591,29 +652,32 @@ case "./src/layouts/chromeLike/main.osl"
 case "./src/layouts/shared/view.osl"
   class __imports__5228a5cd2bf6a46e3a340119920c2e17 (
     def render(array area) (
-      local devtoolsData @= devtools.main ?? { width: 0, anchor: "l" }
-      
-      local devtoolsArea @= rwl.area.copy(area)
       local contentArea @= rwl.area.copy(area)
-      switch devtoolsData.anchor (
-        case "l"
-          contentArea[1] += devtoolsData.width
-          devtoolsArea[3] = contentArea[1]
-          break
-        case "r"
-          contentArea[3] -= devtoolsData.width
-          devtoolsArea[1] = contentArea[3]
-          break
-      )
       
-      devtoolsArea[1] += 5
+      if devtools.main.open (
+        local devtoolsData @= devtools.main ?? { width: 0, anchor: "l" }
+        
+        local devtoolsArea @= rwl.area.copy(area)
+        switch devtoolsData.anchor (
+          case "l"
+            contentArea[1] += devtoolsData.width
+            devtoolsArea[3] = contentArea[1]
+            break
+          case "r"
+            contentArea[3] -= devtoolsData.width
+            devtoolsArea[1] = contentArea[3]
+            break
+        )
+      
+        devtoolsArea[1] += 5
+      )
       
       if layouts.shared.state.currentDocument != null (
         void layouts.shared.state.currentDocument.checkResp()
         void layouts.shared.state.currentDocument.render(contentArea)
       )
       
-      if typeof(devtools) == "object" (
+      if devtools.main.open (
         void devtools.main.update(devtoolsArea, area)
       )
     )
@@ -758,11 +822,12 @@ case "./src/layouts/shared/state.osl"
     def selectTab(number index) (
       self.currentTab @= index
       void self.updateTab()
-      inputs[layouts.shared.urlbar.inputId] = self.currentDocument.url.text
     )
     
     def updateTab() (
       self.currentDocument @= self.tabs[self.currentTab].document
+      log self.currentDocument.url.text
+      inputs[layouts.shared.urlbar.inputId] = self.currentDocument.url.text
       //self.currentDocument ??= shared.document.Document()
     )
   )
@@ -819,6 +884,9 @@ case "./src/devtools/main.osl"
   class __imports__87f5572a1b07abb6f61e525f0557da7a (
     string anchor = "r"
     number width = 350
+    boolean open = false
+    
+    number saveWidth = 350
     number resizingEdge = 0
     
     menu = "console"
@@ -866,7 +934,7 @@ case "./src/devtools/main.osl"
       c shared.theme.prim
       local topbarH = 0
       if menu.topbar != null (
-        topbarH = 25
+        topbarH = menu.topbarHeight ?? 25
         frame area[1] area[4] - h area[3] area[4] - h - topbarH (
           void menu.topbar()
         )
@@ -878,7 +946,21 @@ case "./src/devtools/main.osl"
       )
       
       c shared.theme.prim
-      frame area[1] area[4] - h - topbarH area[3] area[2] [menu.width,menu.height] "devtools_" ++ self.menu (
+      local bottombarH = 0
+      if menu.bottombar != null (
+        bottombarH = menu.bottombarHeight ?? 25
+        frame area[1] area[4] - h area[3] area[4] - h - bottombarH (
+          void menu.bottombar()
+        )
+        local w = rwl.area.width(area)
+        goto rwl.area.centerX(area) area[2] + bottombarH
+        pen "size" 2
+        line w / -2 1 w / 2 1 : c#shared.theme.prim
+        bottombarH += 1
+      )
+      
+      c shared.theme.prim
+      frame area[1] area[4] - h - topbarH area[3] area[2] + bottombarH [menu.width,menu.height] "devtools_" ++ self.menu (
         if menu != null (
           if menu.update != null (
             void menu.update()
@@ -980,6 +1062,28 @@ case "./src/net/fetch.osl"
     )
   )
   return __imports__d974ce5692d372884f5c4f8f8bf1ab18
+case "./src/shared/input.osl"
+  class __imports__f477f9b400e164d253c3bfeb6a54c186 (
+    boolean rwlLeftClick = false
+    
+    def reset() (
+      self.rwlLeftClick = false
+    )
+    
+    def update() (
+      self.leftClick = mouse_left and !self.leftDown
+      self.leftDown = mouse_left
+      if self.leftClick (
+        self.rwlLeftClick = true
+      )
+      
+      // TODO: make a keybind system?
+      if "`".onKeyDown() (
+        devtools.main.open = !devtools.main.open
+      )
+    )
+  )
+  return __imports__f477f9b400e164d253c3bfeb6a54c186
 case "./src/shared/tab_worker.osl"
   class __imports__ed11349f32bd7389fac05d89b56e016d (
     def oncreate() (
@@ -993,6 +1097,15 @@ case "./src/shared/tab_worker.osl"
           //log self
           void self.document.loadAst(parser.parse())
           self.parseText = null
+        )
+      )
+      if self.document != null (
+        void self.document.rwlInst.interactUpdate({
+          rtr: self.document.rtrInst
+        })
+        local mods @= self.document.rtrInst.modules.getValues()
+        for i mods.len (
+          void mods[i].runEventQueue()
         )
       )
     )
@@ -1039,6 +1152,7 @@ case "./src/shared/theme.osl"
       self.seco = user.theme.secondary
       self.tert = user.theme.tertiary
       self.text = user.theme.text
+      self.accent = global_accent
     )
     
     load()
@@ -1174,9 +1288,6 @@ case "./src/shared/document.osl"
       def updateInsts() (
         // inject rwl apis
         void rtr.rwl.addToInst(self, self.rtrInst)
-        
-        // start onloads
-        void self.rtrInst.startModules()
       )
       
       def update(array area) (
@@ -1188,7 +1299,7 @@ case "./src/shared/document.osl"
           self.worker.area @= area
           if !self.worker.alive (
             self.rwlInst.errored = true
-            self.rwlInst.errormsg = "tab worker died, check code for syntax errors\nyou can also check js console"
+            self.rwlInst.errormsg = "tab worker died, check js console"
           )
         )
         
@@ -1232,6 +1343,7 @@ case "./src/shared/document.osl"
         void self.createInsts()
         void self.rwlInst.loadFromAst(ast)
         void self.updateInsts()
+        void self.rtrInst.startModules()
       )
       
       def loadText(string text) (
@@ -1554,12 +1666,13 @@ case "./src/rtr/value.osl"
     )
     
     class RTROslFuncValue extends RTRFuncValue (
-      def init(func) (
+      def init(func, extra) (
         self.func @= func
+        self.extra @= extra
       )
       
       def callFunc(object inst, array args) (
-        return self.func(args, inst) ?? rtr.value.RTRNullValue()
+        return self.func(args, inst, extra) ?? rtr.value.RTRNullValue()
       )
     )
     
@@ -1793,7 +1906,7 @@ case "./src/rtr/ast.osl"
           "(",")",
           "[","]",
           "{","}",
-          ",",";",":","=",".",
+          ",",";",":","=",".","#",
           "+","-","*","/","%","^",
           "\\",
           "'","\"","`",
@@ -1853,7 +1966,7 @@ case "./src/rtr/ast.osl"
         void self.consumeWhitespace()
         void self.expect("(")
         void self.consumeWhitespace()
-        local name @= self.expectText()
+        local target @= self.eventTarget()
         void self.consumeWhitespace()
         void self.expect(")")
         void self.consumeWhitespace()
@@ -1861,7 +1974,7 @@ case "./src/rtr/ast.osl"
         
         return {
           kind: "event",
-          name,
+          target,
           body,
           start, end: self.getPos()
         }
@@ -2012,8 +2125,62 @@ case "./src/rtr/ast.osl"
         return { elements, start, end: self.getPos() }
       )
       
-      // expressions
+      // event targets
+      def eventTarget() (
+        local start @= self.getPos()
+        
+        local target @= self.target()
+        
+        void self.consumeWhitespace()
+        
+        if self.peek() == ":" (
+          void self.consume()
+          local eventName = self.expectText()
+          return {
+            kind: "property",
+            target,
+            eventName,
+            start, end: self.getPos()
+          }
+        )
+        
+        self.pointer = start.i
+        
+        return {
+          kind: "global",
+          target: self.expectText(),
+          start, end: self.getPos()
+        }
+      )
       
+      // targets
+      def target() (
+        local start @= self.getPos()
+        
+        if self.peek() == "*" (
+          void self.consume()
+          return {
+            kind: "any"
+          }
+        )
+        
+        local kind = "element"
+        
+        if self.peek() == "#" (
+          void self.consume()
+          void self.consumeWhitespace()
+          kind = "id"
+        )
+        
+        local name = self.expectText()
+        
+        return {
+          kind,
+          name
+        }
+      )
+      
+      // expressions
       def expression() (
         return self.declare()
       )
@@ -2515,20 +2682,26 @@ case "./src/rtr/main.osl"
         void self.loadFromAst(ast)
         void self.initScope()
         void self.defScope()
+        self.eventQueue @= []
       )
       def loadFromAst(object ast) (
         self.ast @= ast
         
-        self.events @= {}
+        self.events @= []
         self.eventList @= []
         for i self.ast.elements.len (
           local topLevel @= self.ast.elements[i]
           if topLevel.kind == "event" (
-            if self.eventList.contains(topLevel.name) (
-              throw topLevel.name + "event already exists on module"
+            if topLevel.target.kind == "global" (
+              if self.eventList.contains(topLevel.target.target) (
+                throw topLevel.target.target + "event already exists on module"
+              )
+              void self.eventList.append(topLevel.target.target)
             )
-            void self.eventList.append(topLevel.name)
-            self.events[topLevel.name] @= topLevel
+            void self.events.append([
+              topLevel.target,
+              topLevel
+            ])
           )
         )
       )
@@ -2696,13 +2869,73 @@ case "./src/rtr/main.osl"
         self.scope[self.scope.len][key] @= [val, meta]
       )
       
-      def runEvent(string name, object data) (
-        if !self.eventList.contains(name) (
-          return
+      def findEligible(object target) (
+        local evs @= []
+        
+        for i self.events.len (
+          local ev @= self.events[i][2]
+          
+          if target.element != null (
+            if ev.target.kind == "property" and ev.target.eventName == target.name (
+              if ev.target.target.kind == "id" (
+                if ev.target.target.name == target.element.id (
+                  void evs.append(ev)
+                )
+              )
+            )
+          ) else if typeof(ev.target.target) == "string" (
+            if ev.target.target == target.name (
+              void evs.append(ev)
+            )
+          )
         )
         
-        local ev @= self.events[name]
-        void self.runBlock(ev.body)
+        return evs
+      )
+      
+      def runEvents(object target, object data) (
+        void self.eventQueue.append([
+          "events",
+          target,
+          data
+        ])
+      )
+      def runEvent(object target, object data) (
+        void self.eventQueue.append([
+          "event",
+          target,
+          data
+        ])
+      )
+      
+      def runEventQueue() (
+        for i self.eventQueue.len (
+          local ev @= self.eventQueue.shift()
+          
+          if ev[1] == "events" (
+            void self.runEventsRaw(ev[2], ev[3])
+          )
+          if ev[1] == "event" (
+            void self.runEventRaw(ev[2], ev[3])
+          )
+        )
+      )
+      
+      def runEventsRaw(object target, object data) (
+        local evs @= self.findEligible(target)
+        
+        for i evs.len (
+          void self.runBlock(evs[i].body)
+        )
+      )
+      def runEventRaw(object target, object data) (
+        local ev @= self.findEligible(target)[1]
+        
+        if ev == null (
+          return rtr.value.RTRNullValue()
+        )
+        
+        return self.runBlock(ev.body)
       )
       def runBlock(object block) (
         local elements @= block.elements
@@ -2711,6 +2944,7 @@ case "./src/rtr/main.osl"
         for i elements.len (
           local out @= self.runStatement(elements[i])
           if self.getScopeVar("@return") ?? 0 != 0 (
+            outVal @= self.getScopeVar("@return")
             break
           )
         )
@@ -2945,6 +3179,9 @@ case "./src/rtr/main.osl"
       def init() (
         self.modules @= {}
         self.console @= []
+        self.ouid = OuidNew()
+        
+        self.started = false
       )
     
       def addModule(object mod) (
@@ -2955,9 +3192,24 @@ case "./src/rtr/main.osl"
       )
       
       def startModules() (
+        if !self.started (
+          self.started = true
+          void self.runEvent({
+           name: "onload"
+          }, {})
+        )
+      )
+      
+      def runEvent(object target, object data) (
         local mods @= self.modules.getValues()
         for i mods.len (
-          void mods[i].runEvent("onload", {})
+          void mods[i].runEvent(target, data)
+        )
+      )
+      def runEvents(object target, object data) (
+        local mods @= self.modules.getValues()
+        for i mods.len (
+          void mods[i].runEvents(target, data)
         )
       )
     )
@@ -3020,6 +3272,26 @@ case "./src/rwl/ast.osl"
           throw "expected '" ++ tokens.join(" or ") ++ "' got '" ++ tkn ++ "'"
         )
         return tkn
+      )
+      def expectText() (
+        local tkn @= self.consume()
+        if !tkn.match("/^[a-zA-Z_]+$/") (
+          throw "identifier must consist of letters or _"
+        )
+        return tkn
+      )
+      def getPos() (
+        local ln = 1
+        local col = 0
+        local i = self.pointer
+        for t self.pointer (
+          col ++
+          if self.tokens[t] == "\n" (
+            ln ++
+            col = 0
+          )
+        )
+        return { ln, col, i }
       )
       
       def tokenise(string text) (
@@ -3084,6 +3356,7 @@ case "./src/rwl/ast.osl"
       def statement() (
         void self.consumeWhitespace()
         
+        local start @= self.getPos()
         local tkn @= self.peek()
         
         // block
@@ -3102,12 +3375,14 @@ case "./src/rwl/ast.osl"
               value,
               header
             },
-            kind: "element"
+            kind: "element",
+            start, end: self.getPos()
           }
         )
       )
       
       def blockStatement() (
+        local start @= self.getPos()
         local key @= self.consume()
         
         void self.consumeWhitespace()
@@ -3188,21 +3463,24 @@ case "./src/rwl/ast.osl"
           data: {
             header,
             content
-          }
+          },
+          start, end: self.getPos()
         }
       )
       
       def block() (
+        local start @= self.getPos()
         void self.expect("{")
         void self.consumeWhitespace()
         local elements @= self.blockContent()
         void self.consumeWhitespace()
         void self.expect("}")
-        return { elements }
+        return { elements, start, end: self.getPos() }
       )
       
       // header stuff
       def header() (
+        local start @= self.getPos()
         local attributes @= []
         if self.peek() == "[" (
           void self.expect("[")
@@ -3223,10 +3501,11 @@ case "./src/rwl/ast.osl"
           void self.expect("]")
         )
         
-        return { attributes }
+        return { attributes, start, end: self.getPos() }
       )
       def headerItem() (
         void self.consumeWhitespace()
+        local start @= self.getPos()
         local tkn @= self.consume()
         void self.consumeWhitespace()
         if self.peek() == "=" (
@@ -3238,13 +3517,15 @@ case "./src/rwl/ast.osl"
           return {
             kind: "key",
             key: tkn,
-            value
+            value,
+            start, end: self.getPos()
           }
         )
         if tkn.match("/^[a-zA-Z_]+$/") != null (
           return {
             kind: "flag",
-            data: tkn
+            data: tkn,
+            start, end: self.getPos()
           }
         )
       )
@@ -3269,6 +3550,7 @@ case "./src/rwl/ast.osl"
       )
       
       def str() (
+        local start @= self.getPos()
         local q @= self.expects(["'","\"","`"])
         local content = ""
         local end = false
@@ -3299,7 +3581,8 @@ case "./src/rwl/ast.osl"
         void self.expect(q)
         return {
           type: "str",
-          value: content
+          value: content,
+          start, end: self.getPos()
         }
       )
       
@@ -3308,6 +3591,8 @@ case "./src/rwl/ast.osl"
         if self.peek().match("/^[0-9]+$/") == null (
           throw "unexpected token '" ++ self.peek() ++ "'"
         )
+        
+        local start @= self.getPos()
         
         local value @= self.consume().toNum()
         
@@ -3320,11 +3605,13 @@ case "./src/rwl/ast.osl"
         
         return {
           type,
-          value
+          value,
+          start, end: self.getPos()
         }
       )
       
       def color() (
+        local start @= self.getPos()
         void self.expect("#")
         local value = self.consume()
         if ![3,6].contains(value.len) (
@@ -3332,11 +3619,13 @@ case "./src/rwl/ast.osl"
         )
         return {
           type: "color",
-          value: "#" ++ value
+          value: "#" ++ value,
+          start, end: self.getPos()
         }
       )
       
       def property() (
+        local start @= self.getPos()
         local source = self.consume()
         if source.match("/^[a-zA-Z_]+$/") == null (
           throw "source must consist of letters or _"
@@ -3354,7 +3643,8 @@ case "./src/rwl/ast.osl"
         return {
           type: "property",
           source,
-          name
+          name,
+          start, end: self.getPos()
         }
       )
     )
@@ -3554,8 +3844,29 @@ case "./src/rwl/main.osl"
     debug = false
     
     class RWLNode (
+      // global attributes
+      def updateGlobal() (
+        self.id = null
+        
+        local id @= self.expectOnHeader("id", "str")
+        if id.isError (
+          return id
+        )
+        if id != null (
+          self.id = id.value
+        )
+      )
+      
       def update() (
         
+      )
+      
+      def topUpdate() (
+        
+      )
+      
+      def interactUpdate() (
+      
       )
       
       def render() (
@@ -3591,7 +3902,9 @@ case "./src/rwl/main.osl"
       )
       
       def update(array area, object context) (
+        void self.updateBackgroundColor()
         void self.updateBackground(area)
+        void self.updateGlobal()
         
         local childArea @= rwl.area.copy(area)
         
@@ -3652,13 +3965,22 @@ case "./src/rwl/main.osl"
         })
       )
       
-      def updateBackground(area) (
-        self.area @= area
+      def interactUpdate(object context) (
+        for i self.children.len (
+          void self.children[i].interactUpdate(context)
+        )
+      )
+      
+      def updateBackgroundColor() (
         local color @= self.expectOnHeader("color", "color")
         
         if color != null (
           self.color @= color.value
         )
+      )
+      
+      def updateBackground(array area) (
+        self.area @= area
         
         local allRounding @= self.expectOnHeader("rounding", "num")
         
@@ -3685,7 +4007,7 @@ case "./src/rwl/main.osl"
       def render() (
         void self.renderBackground()
         if rwl.main.debug (
-          void rwl.debug.box(self.area)
+          void rwl.debug.box(self.area, #f00)
           void rwl.debug.box(self.childArea, #0f0)
         )
         void rwl.main.RenderElements(self.children)
@@ -3716,7 +4038,10 @@ case "./src/rwl/main.osl"
       )
       
       def update(array area, object context) (
-        void self.updateBackground()
+        void self.updateBackgroundColor()
+        void self.updateBackground(area)
+        void self.updateGlobal()
+        
         local dir = "x"
         local flipped = false
         for flagI self.header.flags.len (
@@ -3847,6 +4172,202 @@ case "./src/rwl/main.osl"
       )
     )
     
+    class RWLPositionedContainer extends RWLContainer (
+      def update(array containerArea, object context) (
+        void self.updateGlobal()
+        
+        local height = self.expectOnHeader("height", "num").value ?? 20
+        
+        local marginL = 0
+        local marginR = 0
+        local marginB = 0
+        local marginT = 0
+        
+        local pairs @= self.header.pairs
+        for pairI pairs.len (
+          local pair @= pairs[pairI]
+          local value @= pair[2]
+          
+          switch pair[1] (
+            case "margin"
+              marginL = value.value
+              marginR = value.value
+              marginB = value.value
+              marginT = value.value
+              break
+            case "margin_x"
+              marginL = value.value
+              marginR = value.value
+              break
+            case "margin_y"
+              marginB = value.value
+              marginT = value.value
+              break
+            case "margin_l"
+              marginL = value.value
+              break
+            case "margin_r"
+              marginR = value.value
+              break
+            case "margin_b"
+              marginB = value.value
+              break
+            case "margin_t"
+              marginT = value.value
+              break
+          )
+        )
+        
+        local area @= [
+          containerArea[1] + marginL,
+          context.y - height - marginT - marginB,
+          containerArea[3] - marginR,
+          context.y - marginT
+        ]
+        
+        self.outArea @= area
+        
+        local area @= [
+          containerArea[1] + marginL,
+          context.y - height - marginT - marginB,
+          containerArea[3] - marginR,
+          context.y - marginT
+        ]
+        
+        context.y -= height + marginT + marginB
+        
+        local color @= self.expectOnHeader("color", "color")
+        if color.isError (
+          return color
+        )
+        if color != null (
+          self.color @= color.value
+        )
+        
+        local hover_color @= self.expectOnHeader("hover_color", "color")
+        if hover_color.isError (
+          return hover_color
+        )
+        if hover_color != null (
+          self.hover_color @= hover_color.value
+        )
+        
+        void self.updateBackground(area)
+        
+        local paddingL = 0
+        local paddingR = 0
+        local paddingB = 0
+        local paddingT = 0
+        
+        local pairs @= self.header.pairs
+        for pairI pairs.len (
+          local pair @= pairs[pairI]
+          local value @= pair[2]
+          
+          switch pair[1] (
+            case "padding"
+              paddingL = value.value
+              paddingR = value.value
+              paddingB = value.value
+              paddingT = value.value
+              break
+            case "padding_x"
+              paddingL = value.value
+              paddingR = value.value
+              break
+            case "padding_y"
+              paddingB = value.value
+              paddingT = value.value
+              break
+            case "padding_l"
+              paddingL = value.value
+              break
+            case "padding_r"
+              paddingR = value.value
+              break
+            case "padding_b"
+              paddingB = value.value
+              break
+            case "padding_t"
+              paddingT = value.value
+              break
+          )
+        )
+        
+        local childArea @= [
+          area[1] + paddingL,
+          area[2] + paddingB,
+          area[3] - paddingR,
+          area[4] - paddingT
+        ]
+        
+        self.childArea @= childArea
+        
+        return rwl.main.UpdateElements(self.children, childArea, {
+          anchorX: "c",
+          anchorY: "c",
+          color: "#fff",
+          inst: context.inst
+        })
+      )
+      
+      def render() (
+        void self.renderBackground()
+        if rwl.main.debug (
+          void rwl.debug.box(self.area, #f00)
+          void rwl.debug.box(self.childArea, #0f0)
+          void rwl.debug.box(self.outArea, #00f)
+        )
+        void rwl.main.RenderElements(self.children)
+      )
+    )
+    
+    class RWLButton extends RWLPositionedContainer (
+      blockName = "button"
+      
+      def init(array children, object header) (
+        self.children @= children
+        self.header @= header
+        self.elemI = rwl.main.elemI
+      )
+      
+      def isHovered() (
+        return mouse_x > self.area[1] and mouse_y > self.area[2] and mouse_x < self.area[3] and mouse_y < self.area[4]
+      )
+      
+      def renderBackground() (
+        local hov = self.isHovered()
+        
+        local col = self.color
+        if self.hover_color != null and hov (
+          col = self.hover_color
+        )
+        
+        if col != null (
+          void shared.graphics.filledBox(self.area, self.rounding, col)
+        )
+      )
+      
+      def interactUpdate(object context) (
+        if context.topI < self.elemI (
+          if self.isHovered() (
+            context.top @= self
+            context.topI = self.elemI
+          )
+        )
+      )
+      
+      def topUpdate(object context) (
+        //log "hi" context
+        if shared.input.rwlLeftClick (
+          void context.rtr.runEvents({
+            name: "click",
+            element: self
+          }, {})
+        )
+      )
+    )
+    
     class RWLScript extends RWLNode (
       blockName = "script"
       kind = "script"
@@ -3875,7 +4396,9 @@ case "./src/rwl/main.osl"
       
       def update(array area, object context) (
         if self.mod != null (
-          void self.mod.runEvent("onupdate", {})
+          void self.mod.runEvent({
+            name: "onupdate"
+          }, {})
         )
       )
     )
@@ -3934,6 +4457,10 @@ case "./src/rwl/main.osl"
           return anchor
         )
         anchor = anchor["value"]
+        
+        if context.x == null or context.y == null (
+          anchor ??= "c"
+        )
         
         if anchor != null (
           if ["tl","t","tr",
@@ -4087,6 +4614,7 @@ case "./src/rwl/main.osl"
       )
     )
     
+    elemI = 0
     def AstToElement(ast, object inst) (
       def AstToHeader(header) (
         local flags @= []
@@ -4104,6 +4632,7 @@ case "./src/rwl/main.osl"
         )
         return { flags, pairs }
       )
+      self.elemI ++
       //log "a" ast
       local header @= AstToHeader(ast.data.header)
       switch ast.kind (
@@ -4127,6 +4656,9 @@ case "./src/rwl/main.osl"
             
             case "script"
               return rwl.main.RWLScript(shared.utils.removeIndents(ast.data.content), header, inst)
+            
+            case "button"
+              return rwl.main.RWLButton(children, header)
             
             default
               return rwl.error.Error("UnknownBlockType", {
@@ -4210,6 +4742,19 @@ case "./src/rwl/main.osl"
         )
       )
       
+      def interactUpdate(object context) (
+        context.top = null
+        context.topI = 0
+        for i self.elements.len (
+          void self.elements[i].interactUpdate(context)
+        )
+        
+        if context.top != null (
+          void context.top.topUpdate(context)
+        )
+        void shared.input.reset()
+      )
+      
       def render(array area) (
         void self.checkUpdate(area)
       
@@ -4241,6 +4786,28 @@ case "./src/rtr/rwl.osl"
         })
       )
       
+      def getItem(key) (
+        switch key.stringify() (
+          // values
+          case "title"
+            return rtr.value.RTRStrValue(self.doc.title)
+          case "icon"
+            if self.doc.icon == null (
+              return rtr.value.RTRNullValue()
+            )
+            return rtr.value.RTRStrValue(self.doc.icon)
+          
+          // methods
+          case "redirect"
+            return rtr.value.RTROslFuncValue(def(args, _inst, doc) -> (
+              void doc.doc.loadUrl(shared.url.Url(args[1].stringify()))
+              void layouts.shared.state.updateTab()
+            ), self)
+          default
+            throw "unknown property" + key.stringify() + "on document"
+        )
+      )
+      
       def setItem(key, value) (
         switch key.stringify() (
           case "title"
@@ -4250,7 +4817,7 @@ case "./src/rtr/rwl.osl"
             self.doc.icon = value.stringify()
             break
           default
-            throw "unknown property" + key.stringify() + "on document"
+            throw "cannot set property" + key.stringify() + "on document"
         )
       )
     )
@@ -4272,7 +4839,7 @@ case "./src/assets/empty.rwl"
   return "  root {\n    \"grahhh\"\n  }"
 
 case "./main.rwl"
-  return "  root [color=theme:prim] {\n    frame [Horizontal] {\n      section [size=100, rounding_tr=20, rounding_br=20] {\n        \"fr\" [color=theme:seco],\n        \"str\",\n        15\n      },\n      section {\n        frame [Vertical] {\n          section [size=50] {\n            \"maybe?\" [color=theme:text, anchor=\"l\", padding=10, size=15]\n          },\n          section [color=theme:back, rounding=20, margin_r=10, margin_b=10, padding=20] {\n            \"blehhh\" [color=theme:text],\n            \"fr\",\n            \":P\" [anchor=\"bl\",size=5]\n          }\n        }\n      }\n    },\n    script {\n      event(onload) {\n        for(i, range(1,10)) {\n          log(i);\n        }\n        \n        document.title = \"gay\";\n        document.icon = \"flag-progress\";\n      }\n    }\n  }"
+  return "  root [color=theme:prim] {\n    frame [Horizontal] {\n      section [size=100, rounding_tr=20, rounding_br=20] {\n        \"fr\" [color=theme:seco],\n        \"str\",\n        15\n      },\n      section {\n        frame [Vertical] {\n          section [size=50] {\n            \"maybe?\" [color=theme:text, anchor=\"l\", padding=10, size=15]\n          },\n          section [color=theme:back, rounding=20, margin_r=10, margin_b=10, padding=20] {\n            \"blehhh\" [color=theme:text],\n            \"fr\",\n            button [id=\"hi\",color=theme:prim, margin=30, padding=5, hover_color=theme:seco, margin_t=10, rounding=20] {\n              \"boo\" [color=theme:text]\n            },\n            \":P\" [anchor=\"bl\",size=5]\n          },\n          script {\n            event(#hi:click) {\n              log(\"fr\");\n              document.redirect(\"local://~/projects/phosphorus/src/assets/empty.rwl\");\n            }\n          }\n        }\n      }\n    },\n    script {\n      event(onload) {\n        log(\"bruh\");\n        document.title = \"gay\";\n        document.icon = \"flag-progress\";\n      }\n    }\n  }"
 )
 )
 import as "glass" from "packages"
@@ -4307,7 +4874,8 @@ object shared @= {
   url: import("./src/shared/url.osl"),
   theme: import("./src/shared/theme.osl"),
   config: import("./src/shared/config.osl"),
-  tab_worker: import("./src/shared/tab_worker.osl")
+  tab_worker: import("./src/shared/tab_worker.osl"),
+  input: import("./src/shared/input.osl")
 }
 
 object layouts @= {
@@ -4359,8 +4927,8 @@ void layouts.shared.state.selectTab(1)
 void window.resize(900,500)
 
 mainloop:
-  //void layouts.chromeLike.main.update()
-  void layouts.summit.main.update()
+  void layouts.chromeLike.main.update()
+  //void layouts.summit.main.update()
   
   // file dropping
   if file_dropped != 0 (

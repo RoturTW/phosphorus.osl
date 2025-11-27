@@ -13,14 +13,23 @@ root [color=theme:prim] {
         section [color=theme:back, rounding=20, margin_r=10, margin_b=10, padding=20] {
           "blehhh" [color=theme:text],
           "fr",
+          button [id="hi",color=theme:prim, margin=30, padding=5, hover_color=theme:seco, margin_t=10, rounding=20] {
+            "boo" [color=theme:text]
+          },
           ":P" [anchor="bl",size=5]
+        },
+        script {
+          event(#hi:click) {
+            log("fr");
+            document.redirect("local://~/projects/phosphorus/src/assets/empty.rwl");
+          }
         }
       }
     }
   },
   script {
     event(onload) {
-      
+      log("bruh");
       document.title = "gay";
       document.icon = "flag-progress";
     }

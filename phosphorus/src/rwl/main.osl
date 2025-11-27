@@ -2,8 +2,29 @@
 debug = false
 
 class RWLNode (
+  // global attributes
+  def updateGlobal() (
+    self.id = null
+    
+    local id @= self.expectOnHeader("id", "str")
+    if id.isError (
+      return id
+    )
+    if id != null (
+      self.id = id.value
+    )
+  )
+  
   def update() (
     
+  )
+  
+  def topUpdate() (
+    
+  )
+  
+  def interactUpdate() (
+  
   )
   
   def render() (
@@ -39,7 +60,9 @@ class RWLContainer extends RWLNode (
   )
   
   def update(array area, object context) (
+    void self.updateBackgroundColor()
     void self.updateBackground(area)
+    void self.updateGlobal()
     
     local childArea @= rwl.area.copy(area)
     
@@ -100,13 +123,22 @@ class RWLContainer extends RWLNode (
     })
   )
   
-  def updateBackground(area) (
-    self.area @= area
+  def interactUpdate(object context) (
+    for i self.children.len (
+      void self.children[i].interactUpdate(context)
+    )
+  )
+  
+  def updateBackgroundColor() (
     local color @= self.expectOnHeader("color", "color")
     
     if color != null (
       self.color @= color.value
     )
+  )
+  
+  def updateBackground(array area) (
+    self.area @= area
     
     local allRounding @= self.expectOnHeader("rounding", "num")
     
@@ -133,7 +165,7 @@ class RWLContainer extends RWLNode (
   def render() (
     void self.renderBackground()
     if rwl.main.debug (
-      void rwl.debug.box(self.area)
+      void rwl.debug.box(self.area, #f00)
       void rwl.debug.box(self.childArea, #0f0)
     )
     void rwl.main.RenderElements(self.children)
@@ -164,7 +196,10 @@ class RWLFrame extends RWLContainer (
   )
   
   def update(array area, object context) (
-    void self.updateBackground()
+    void self.updateBackgroundColor()
+    void self.updateBackground(area)
+    void self.updateGlobal()
+    
     local dir = "x"
     local flipped = false
     for flagI self.header.flags.len (
@@ -295,6 +330,202 @@ class RWLSection extends RWLContainer (
   )
 )
 
+class RWLPositionedContainer extends RWLContainer (
+  def update(array containerArea, object context) (
+    void self.updateGlobal()
+    
+    local height = self.expectOnHeader("height", "num").value ?? 20
+    
+    local marginL = 0
+    local marginR = 0
+    local marginB = 0
+    local marginT = 0
+    
+    local pairs @= self.header.pairs
+    for pairI pairs.len (
+      local pair @= pairs[pairI]
+      local value @= pair[2]
+      
+      switch pair[1] (
+        case "margin"
+          marginL = value.value
+          marginR = value.value
+          marginB = value.value
+          marginT = value.value
+          break
+        case "margin_x"
+          marginL = value.value
+          marginR = value.value
+          break
+        case "margin_y"
+          marginB = value.value
+          marginT = value.value
+          break
+        case "margin_l"
+          marginL = value.value
+          break
+        case "margin_r"
+          marginR = value.value
+          break
+        case "margin_b"
+          marginB = value.value
+          break
+        case "margin_t"
+          marginT = value.value
+          break
+      )
+    )
+    
+    local area @= [
+      containerArea[1] + marginL,
+      context.y - height - marginT - marginB,
+      containerArea[3] - marginR,
+      context.y - marginT
+    ]
+    
+    self.outArea @= area
+    
+    local area @= [
+      containerArea[1] + marginL,
+      context.y - height - marginT - marginB,
+      containerArea[3] - marginR,
+      context.y - marginT
+    ]
+    
+    context.y -= height + marginT + marginB
+    
+    local color @= self.expectOnHeader("color", "color")
+    if color.isError (
+      return color
+    )
+    if color != null (
+      self.color @= color.value
+    )
+    
+    local hover_color @= self.expectOnHeader("hover_color", "color")
+    if hover_color.isError (
+      return hover_color
+    )
+    if hover_color != null (
+      self.hover_color @= hover_color.value
+    )
+    
+    void self.updateBackground(area)
+    
+    local paddingL = 0
+    local paddingR = 0
+    local paddingB = 0
+    local paddingT = 0
+    
+    local pairs @= self.header.pairs
+    for pairI pairs.len (
+      local pair @= pairs[pairI]
+      local value @= pair[2]
+      
+      switch pair[1] (
+        case "padding"
+          paddingL = value.value
+          paddingR = value.value
+          paddingB = value.value
+          paddingT = value.value
+          break
+        case "padding_x"
+          paddingL = value.value
+          paddingR = value.value
+          break
+        case "padding_y"
+          paddingB = value.value
+          paddingT = value.value
+          break
+        case "padding_l"
+          paddingL = value.value
+          break
+        case "padding_r"
+          paddingR = value.value
+          break
+        case "padding_b"
+          paddingB = value.value
+          break
+        case "padding_t"
+          paddingT = value.value
+          break
+      )
+    )
+    
+    local childArea @= [
+      area[1] + paddingL,
+      area[2] + paddingB,
+      area[3] - paddingR,
+      area[4] - paddingT
+    ]
+    
+    self.childArea @= childArea
+    
+    return rwl.main.UpdateElements(self.children, childArea, {
+      anchorX: "c",
+      anchorY: "c",
+      color: "#fff",
+      inst: context.inst
+    })
+  )
+  
+  def render() (
+    void self.renderBackground()
+    if rwl.main.debug (
+      void rwl.debug.box(self.area, #f00)
+      void rwl.debug.box(self.childArea, #0f0)
+      void rwl.debug.box(self.outArea, #00f)
+    )
+    void rwl.main.RenderElements(self.children)
+  )
+)
+
+class RWLButton extends RWLPositionedContainer (
+  blockName = "button"
+  
+  def init(array children, object header) (
+    self.children @= children
+    self.header @= header
+    self.elemI = rwl.main.elemI
+  )
+  
+  def isHovered() (
+    return mouse_x > self.area[1] and mouse_y > self.area[2] and mouse_x < self.area[3] and mouse_y < self.area[4]
+  )
+  
+  def renderBackground() (
+    local hov = self.isHovered()
+    
+    local col = self.color
+    if self.hover_color != null and hov (
+      col = self.hover_color
+    )
+    
+    if col != null (
+      void shared.graphics.filledBox(self.area, self.rounding, col)
+    )
+  )
+  
+  def interactUpdate(object context) (
+    if context.topI < self.elemI (
+      if self.isHovered() (
+        context.top @= self
+        context.topI = self.elemI
+      )
+    )
+  )
+  
+  def topUpdate(object context) (
+    //log "hi" context
+    if shared.input.rwlLeftClick (
+      void context.rtr.runEvents({
+        name: "click",
+        element: self
+      }, {})
+    )
+  )
+)
+
 class RWLScript extends RWLNode (
   blockName = "script"
   kind = "script"
@@ -323,7 +554,9 @@ class RWLScript extends RWLNode (
   
   def update(array area, object context) (
     if self.mod != null (
-      void self.mod.runEvent("onupdate", {})
+      void self.mod.runEvent({
+        name: "onupdate"
+      }, {})
     )
   )
 )
@@ -382,6 +615,10 @@ class RWLElement extends RWLNode (
       return anchor
     )
     anchor = anchor["value"]
+    
+    if context.x == null or context.y == null (
+      anchor ??= "c"
+    )
     
     if anchor != null (
       if ["tl","t","tr",
@@ -535,6 +772,7 @@ def RenderElements(array elements) (
   )
 )
 
+elemI = 0
 def AstToElement(ast, object inst) (
   def AstToHeader(header) (
     local flags @= []
@@ -552,6 +790,7 @@ def AstToElement(ast, object inst) (
     )
     return { flags, pairs }
   )
+  self.elemI ++
   //log "a" ast
   local header @= AstToHeader(ast.data.header)
   switch ast.kind (
@@ -575,6 +814,9 @@ def AstToElement(ast, object inst) (
         
         case "script"
           return rwl.main.RWLScript(shared.utils.removeIndents(ast.data.content), header, inst)
+        
+        case "button"
+          return rwl.main.RWLButton(children, header)
         
         default
           return rwl.error.Error("UnknownBlockType", {
@@ -656,6 +898,19 @@ class RWL (
       void self.update(area)
       self.needsUpdate = false
     )
+  )
+  
+  def interactUpdate(object context) (
+    context.top = null
+    context.topI = 0
+    for i self.elements.len (
+      void self.elements[i].interactUpdate(context)
+    )
+    
+    if context.top != null (
+      void context.top.topUpdate(context)
+    )
+    void shared.input.reset()
   )
   
   def render(array area) (

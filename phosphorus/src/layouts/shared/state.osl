@@ -48,10 +48,11 @@ def closeTab(number index) (
 def selectTab(number index) (
   self.currentTab @= index
   void self.updateTab()
-  inputs[layouts.shared.urlbar.inputId] = self.currentDocument.url.text
 )
 
 def updateTab() (
   self.currentDocument @= self.tabs[self.currentTab].document
+  log self.currentDocument.url.text
+  inputs[layouts.shared.urlbar.inputId] = self.currentDocument.url.text
   //self.currentDocument ??= shared.document.Document()
 )

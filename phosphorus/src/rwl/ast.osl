@@ -55,6 +55,26 @@ class Parser (
     )
     return tkn
   )
+  def expectText() (
+    local tkn @= self.consume()
+    if !tkn.match("/^[a-zA-Z_]+$/") (
+      throw "identifier must consist of letters or _"
+    )
+    return tkn
+  )
+  def getPos() (
+    local ln = 1
+    local col = 0
+    local i = self.pointer
+    for t self.pointer (
+      col ++
+      if self.tokens[t] == "\n" (
+        ln ++
+        col = 0
+      )
+    )
+    return { ln, col, i }
+  )
   
   def tokenise(string text) (
     self.tokens @= []
@@ -118,6 +138,7 @@ class Parser (
   def statement() (
     void self.consumeWhitespace()
     
+    local start @= self.getPos()
     local tkn @= self.peek()
     
     // block
@@ -136,12 +157,14 @@ class Parser (
           value,
           header
         },
-        kind: "element"
+        kind: "element",
+        start, end: self.getPos()
       }
     )
   )
   
   def blockStatement() (
+    local start @= self.getPos()
     local key @= self.consume()
     
     void self.consumeWhitespace()
@@ -222,21 +245,24 @@ class Parser (
       data: {
         header,
         content
-      }
+      },
+      start, end: self.getPos()
     }
   )
   
   def block() (
+    local start @= self.getPos()
     void self.expect("{")
     void self.consumeWhitespace()
     local elements @= self.blockContent()
     void self.consumeWhitespace()
     void self.expect("}")
-    return { elements }
+    return { elements, start, end: self.getPos() }
   )
   
   // header stuff
   def header() (
+    local start @= self.getPos()
     local attributes @= []
     if self.peek() == "[" (
       void self.expect("[")
@@ -257,10 +283,11 @@ class Parser (
       void self.expect("]")
     )
     
-    return { attributes }
+    return { attributes, start, end: self.getPos() }
   )
   def headerItem() (
     void self.consumeWhitespace()
+    local start @= self.getPos()
     local tkn @= self.consume()
     void self.consumeWhitespace()
     if self.peek() == "=" (
@@ -272,13 +299,15 @@ class Parser (
       return {
         kind: "key",
         key: tkn,
-        value
+        value,
+        start, end: self.getPos()
       }
     )
     if tkn.match("/^[a-zA-Z_]+$/") != null (
       return {
         kind: "flag",
-        data: tkn
+        data: tkn,
+        start, end: self.getPos()
       }
     )
   )
@@ -303,6 +332,7 @@ class Parser (
   )
   
   def str() (
+    local start @= self.getPos()
     local q @= self.expects(["'","\"","`"])
     local content = ""
     local end = false
@@ -333,7 +363,8 @@ class Parser (
     void self.expect(q)
     return {
       type: "str",
-      value: content
+      value: content,
+      start, end: self.getPos()
     }
   )
   
@@ -342,6 +373,8 @@ class Parser (
     if self.peek().match("/^[0-9]+$/") == null (
       throw "unexpected token '" ++ self.peek() ++ "'"
     )
+    
+    local start @= self.getPos()
     
     local value @= self.consume().toNum()
     
@@ -354,11 +387,13 @@ class Parser (
     
     return {
       type,
-      value
+      value,
+      start, end: self.getPos()
     }
   )
   
   def color() (
+    local start @= self.getPos()
     void self.expect("#")
     local value = self.consume()
     if ![3,6].contains(value.len) (
@@ -366,11 +401,13 @@ class Parser (
     )
     return {
       type: "color",
-      value: "#" ++ value
+      value: "#" ++ value,
+      start, end: self.getPos()
     }
   )
   
   def property() (
+    local start @= self.getPos()
     local source = self.consume()
     if source.match("/^[a-zA-Z_]+$/") == null (
       throw "source must consist of letters or _"
@@ -388,7 +425,8 @@ class Parser (
     return {
       type: "property",
       source,
-      name
+      name,
+      start, end: self.getPos()
     }
   )
 )

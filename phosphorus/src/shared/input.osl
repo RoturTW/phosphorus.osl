@@ -1,0 +1,19 @@
+
+boolean rwlLeftClick = false
+
+def reset() (
+  self.rwlLeftClick = false
+)
+
+def update() (
+  self.leftClick = mouse_left and !self.leftDown
+  self.leftDown = mouse_left
+  if self.leftClick (
+    self.rwlLeftClick = true
+  )
+  
+  // TODO: make a keybind system?
+  if "`".onKeyDown() (
+    devtools.main.open = !devtools.main.open
+  )
+)

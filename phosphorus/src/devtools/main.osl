@@ -1,6 +1,9 @@
 
 string anchor = "r"
 number width = 350
+boolean open = false
+
+number saveWidth = 350
 number resizingEdge = 0
 
 menu = "console"

@@ -30,7 +30,8 @@ object shared @= {
   url: import("./src/shared/url.osl"),
   theme: import("./src/shared/theme.osl"),
   config: import("./src/shared/config.osl"),
-  tab_worker: import("./src/shared/tab_worker.osl")
+  tab_worker: import("./src/shared/tab_worker.osl"),
+  input: import("./src/shared/input.osl")
 }
 
 object layouts @= {

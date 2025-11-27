@@ -4,20 +4,26 @@ class Module (
     void self.loadFromAst(ast)
     void self.initScope()
     void self.defScope()
+    self.eventQueue @= []
   )
   def loadFromAst(object ast) (
     self.ast @= ast
     
-    self.events @= {}
+    self.events @= []
     self.eventList @= []
     for i self.ast.elements.len (
       local topLevel @= self.ast.elements[i]
       if topLevel.kind == "event" (
-        if self.eventList.contains(topLevel.name) (
-          throw topLevel.name + "event already exists on module"
+        if topLevel.target.kind == "global" (
+          if self.eventList.contains(topLevel.target.target) (
+            throw topLevel.target.target + "event already exists on module"
+          )
+          void self.eventList.append(topLevel.target.target)
         )
-        void self.eventList.append(topLevel.name)
-        self.events[topLevel.name] @= topLevel
+        void self.events.append([
+          topLevel.target,
+          topLevel
+        ])
       )
     )
   )
@@ -185,12 +191,72 @@ class Module (
     self.scope[self.scope.len][key] @= [val, meta]
   )
   
-  def runEvent(string name, object data) (
-    if !self.eventList.contains(name) (
+  def findEligible(object target) (
+    local evs @= []
+    
+    for i self.events.len (
+      local ev @= self.events[i][2]
+      
+      if target.element != null (
+        if ev.target.kind == "property" and ev.target.eventName == target.name (
+          if ev.target.target.kind == "id" (
+            if ev.target.target.name == target.element.id (
+              void evs.append(ev)
+            )
+          )
+        )
+      ) else if typeof(ev.target.target) == "string" (
+        if ev.target.target == target.name (
+          void evs.append(ev)
+        )
+      )
+    )
+    
+    return evs
+  )
+  
+  def runEvents(object target, object data) (
+    void self.eventQueue.append([
+      "events",
+      target,
+      data
+    ])
+  )
+  def runEvent(object target, object data) (
+    void self.eventQueue.append([
+      "event",
+      target,
+      data
+    ])
+  )
+  
+  def runEventQueue() (
+    for i self.eventQueue.len (
+      local ev @= self.eventQueue.shift()
+      
+      if ev[1] == "events" (
+        void self.runEventsRaw(ev[2], ev[3])
+      )
+      if ev[1] == "event" (
+        void self.runEventRaw(ev[2], ev[3])
+      )
+    )
+  )
+  
+  def runEventsRaw(object target, object data) (
+    local evs @= self.findEligible(target)
+    
+    for i evs.len (
+      void self.runBlock(evs[i].body)
+    )
+  )
+  def runEventRaw(object target, object data) (
+    local ev @= self.findEligible(target)[1]
+    
+    if ev == null (
       return rtr.value.RTRNullValue()
     )
     
-    local ev @= self.events[name]
     return self.runBlock(ev.body)
   )
   def runBlock(object block) (
@@ -436,6 +502,8 @@ class RTR (
     self.modules @= {}
     self.console @= []
     self.ouid = OuidNew()
+    
+    self.started = false
   )
 
   def addModule(object mod) (
@@ -446,9 +514,24 @@ class RTR (
   )
   
   def startModules() (
+    if !self.started (
+      self.started = true
+      void self.runEvent({
+       name: "onload"
+      }, {})
+    )
+  )
+  
+  def runEvent(object target, object data) (
     local mods @= self.modules.getValues()
     for i mods.len (
-      void mods[i].runEvent("onload", {})
+      void mods[i].runEvent(target, data)
+    )
+  )
+  def runEvents(object target, object data) (
+    local mods @= self.modules.getValues()
+    for i mods.len (
+      void mods[i].runEvents(target, data)
     )
   )
 )

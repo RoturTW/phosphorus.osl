@@ -172,12 +172,13 @@ class RTRFuncValue extends RTRValue (
 )
 
 class RTROslFuncValue extends RTRFuncValue (
-  def init(func) (
+  def init(func, extra) (
     self.func @= func
+    self.extra @= extra
   )
   
   def callFunc(object inst, array args) (
-    return self.func(args, inst) ?? rtr.value.RTRNullValue()
+    return self.func(args, inst, extra) ?? rtr.value.RTRNullValue()
   )
 )
 

@@ -74,7 +74,7 @@ class Parser (
       "(",")",
       "[","]",
       "{","}",
-      ",",";",":","=",".",
+      ",",";",":","=",".","#",
       "+","-","*","/","%","^",
       "\\",
       "'","\"","`",
@@ -134,7 +134,7 @@ class Parser (
     void self.consumeWhitespace()
     void self.expect("(")
     void self.consumeWhitespace()
-    local name @= self.expectText()
+    local target @= self.eventTarget()
     void self.consumeWhitespace()
     void self.expect(")")
     void self.consumeWhitespace()
@@ -142,7 +142,7 @@ class Parser (
     
     return {
       kind: "event",
-      name,
+      target,
       body,
       start, end: self.getPos()
     }
@@ -293,8 +293,62 @@ class Parser (
     return { elements, start, end: self.getPos() }
   )
   
-  // expressions
+  // event targets
+  def eventTarget() (
+    local start @= self.getPos()
+    
+    local target @= self.target()
+    
+    void self.consumeWhitespace()
+    
+    if self.peek() == ":" (
+      void self.consume()
+      local eventName = self.expectText()
+      return {
+        kind: "property",
+        target,
+        eventName,
+        start, end: self.getPos()
+      }
+    )
+    
+    self.pointer = start.i
+    
+    return {
+      kind: "global",
+      target: self.expectText(),
+      start, end: self.getPos()
+    }
+  )
   
+  // targets
+  def target() (
+    local start @= self.getPos()
+    
+    if self.peek() == "*" (
+      void self.consume()
+      return {
+        kind: "any"
+      }
+    )
+    
+    local kind = "element"
+    
+    if self.peek() == "#" (
+      void self.consume()
+      void self.consumeWhitespace()
+      kind = "id"
+    )
+    
+    local name = self.expectText()
+    
+    return {
+      kind,
+      name
+    }
+  )
+  
+  // expressions
   def expression() (
     return self.declare()
   )

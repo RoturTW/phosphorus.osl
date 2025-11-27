@@ -12,4 +12,13 @@ def onframe() (
       self.parseText = null
     )
   )
+  if self.document != null (
+    void self.document.rwlInst.interactUpdate({
+      rtr: self.document.rtrInst
+    })
+    local mods @= self.document.rtrInst.modules.getValues()
+    for i mods.len (
+      void mods[i].runEventQueue()
+    )
+  )
 )

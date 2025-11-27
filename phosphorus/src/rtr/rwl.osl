@@ -10,6 +10,28 @@ class RTRDocument extends rtr.value.RTRValue (
     })
   )
   
+  def getItem(key) (
+    switch key.stringify() (
+      // values
+      case "title"
+        return rtr.value.RTRStrValue(self.doc.title)
+      case "icon"
+        if self.doc.icon == null (
+          return rtr.value.RTRNullValue()
+        )
+        return rtr.value.RTRStrValue(self.doc.icon)
+      
+      // methods
+      case "redirect"
+        return rtr.value.RTROslFuncValue(def(args, _inst, doc) -> (
+          void doc.doc.loadUrl(shared.url.Url(args[1].stringify()))
+          void layouts.shared.state.updateTab()
+        ), self)
+      default
+        throw "unknown property" + key.stringify() + "on document"
+    )
+  )
+  
   def setItem(key, value) (
     switch key.stringify() (
       case "title"
@@ -19,7 +41,7 @@ class RTRDocument extends rtr.value.RTRValue (
         self.doc.icon = value.stringify()
         break
       default
-        throw "unknown property" + key.stringify() + "on document"
+        throw "cannot set property" + key.stringify() + "on document"
     )
   )
 )

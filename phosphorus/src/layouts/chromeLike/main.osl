@@ -6,6 +6,7 @@ def init() (
 
 def update() (
   void shared.theme.load()
+  void shared.input.update()
 
   window.show()
   window_colour = shared.theme.back
