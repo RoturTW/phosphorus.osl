@@ -32,10 +32,16 @@ def compileStatement(object statement) (
       out += rtr.instruction.pop()
       return out
     case "block"
-      local out @= compileBlock(statement.body)
-      if typeof(out) != "array" and out.isError (
-        return out
+      local body @= compileBlock(statement.body)
+      if typeof(body) != "array" and body.isError (
+        return body
       )
+      
+      local out @= []
+      
+      out += rtr.instruction.newScope()
+      out ++= body
+      out += rtr.instruction.popScope()
       
       return out
     
@@ -57,7 +63,9 @@ def compileStatement(object statement) (
         return body
       )
       out ++= body
-      out += rtr.instruction.jump(endLbl)
+      if hasElse (
+        out += rtr.instruction.jump(endLbl)
+      )
       
       for i statement.elifs.len (
         local elif @= statement.elifs[i]
@@ -76,7 +84,9 @@ def compileStatement(object statement) (
           return body
         )
         out ++= body
-        out += rtr.instruction.jump(endLbl)
+        if !(i == statement.elifs.len and statement.elseBody == null) (
+          out += rtr.instruction.jump(endLbl)
+        )
       )
       
       if statement.elseBody != null (
@@ -282,6 +292,9 @@ def compileExpression(object expression) (
       
       return out
     case "var"
+      if ["true","false"].contains(expression.name) (
+        return [rtr.instruction.bool(expression.name == "true")]
+      )
       return [rtr.instruction.get(expression.name)]
     case "prop"
       local out @= []

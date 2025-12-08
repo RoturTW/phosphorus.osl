@@ -31,6 +31,7 @@ object highlighting = {
     names: [
       "null",
       "str",
+      "bool",
       "num",
       "func",
       "arr",
@@ -59,8 +60,9 @@ object highlighting = {
 
 object colors = {
   label: #34eb9b,
-  num: #34eb3a,
   str: #eba434,
+  num: #34eb3a,
+  bool: #537aed,
   col: #73a7f0,
   var: #cf8846
 }
@@ -184,14 +186,34 @@ def drawInstruction(object instruction, number x, array instructions, number i) 
     
       local corresponding = self.getCorresponding(instructions, i)
       if corresponding != null (
-        goto x self.y
+        // "arrow" | "point"
+        local look = "arrow"
         c shared.theme.tert
+        goto x self.y
+        if look == "point" (
+          pen "size" 7.5
+          pen "down"
+          pen "up"
+        )
         pen "size" 2.5
         pen "down"
         goto x - 7.5 self.y
         goto x - 7.5 corresponding.editorY
         goto x corresponding.editorY
         pen "up"
+        if look == "point" (
+          pen "size" 7.5
+          pen "down"
+          pen "up"
+        )
+        if look == "arrow" (
+          change_x 2
+          pen "down"
+          change -4 4
+          change 4 -4
+          change -4 -4
+          pen "up"
+        )
       )
     )
     
@@ -240,6 +262,9 @@ def drawData(object instruction) (
     case "num"
       drawNum(instruction.data)
       break
+    case "bool"
+      drawBool(instruction.data)
+      break
     case "func"
       drawArgs(instruction.args)
       break
@@ -261,9 +286,22 @@ def drawData(object instruction) (
       drawVar(instruction.name)
       break
     
+    case "asivar"
+      if instruction.op != null (
+        drawStr(instruction.op)
+      )
+      drawVar(instruction.name)
+      break
+    case "asiprop"
+      if instruction.op != null (
+        drawStr(instruction.op)
+      )
+      break
+    
     case "dupe"
       drawArgName("idx")
       drawNum(instruction.i)
+      break
   )
 )
 
@@ -273,11 +311,14 @@ def drawArgName(string name) (
   change_x -2.5
 )
 
+def drawStr(string str) (
+  text str.JsonStringify() 9 : c#self.colors.str chx#7.5
+)
 def drawNum(number num) (
   text num 9 : c#self.colors.num chx#7.5
 )
-def drawStr(string str) (
-  text str.JsonStringify() 9 : c#self.colors.str chx#7.5
+def drawBool(boolean bool) (
+  text bool.toStr() 9 : c#self.colors.bool chx#7.5
 )
 def drawColor(string col) (
   text col 9 : c#self.colors.col chx#7.5

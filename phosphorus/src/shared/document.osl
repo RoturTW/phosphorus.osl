@@ -44,7 +44,7 @@ class Document (
   
   def updateInsts() (
     // inject rwl apis
-    void rtr.rwl.addToInst(self, self.rtrInst)
+    void rtr.apis.rwl.addToInst(self, self.rtrInst)
   )
   
   def update(array area) (

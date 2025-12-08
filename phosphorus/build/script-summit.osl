@@ -1,3 +1,4 @@
+build @= { built: true, package: {"name":"phosphorus","version":"1.0.0","description":"rotur web engine","main":"script.osl","dependencies":{},"tags":[],"include":["./main.rwl","./test.rwl","./sidebartest.rwl","./src/assets/empty.rwl","./src/assets/settings.rwl"],"phosphorus":{"layout":"summit"},"scripts":{"opaljson-summit":"osl ./scripts/opal_summit.osl","build-summit":["fpp script opaljson-summit","fpp build","rm build/script-summit.osl","mv build/script.osl build/script-summit.osl","echo \"summit build complete!\""],"opaljson-chromeLike":"osl ./scripts/opal_chromeLike.osl","build-chromeLike":["fpp script opaljson-chromeLike","fpp build","rm build/script-chromeLike.osl","mv build/script.osl build/script-chromeLike.osl","echo \"chromeLike build complete!\""],"build":["fpp script build-summit","fpp script build-chromeLike"]}} }
 opal_imports = {}
 def import(path) (
   switch path (
@@ -36,6 +37,7 @@ case "./src/devtools/menus/compiled.osl"
         names: [
           "null",
           "str",
+          "bool",
           "num",
           "func",
           "arr",
@@ -64,8 +66,9 @@ case "./src/devtools/menus/compiled.osl"
     
     object colors = {
       label: #34eb9b,
-      num: #34eb3a,
       str: #eba434,
+      num: #34eb3a,
+      bool: #537aed,
       col: #73a7f0,
       var: #cf8846
     }
@@ -189,14 +192,34 @@ case "./src/devtools/menus/compiled.osl"
         
           local corresponding = self.getCorresponding(instructions, i)
           if corresponding != null (
-            goto x self.y
+            // "arrow" | "point"
+            local look = "arrow"
             c shared.theme.tert
+            goto x self.y
+            if look == "point" (
+              pen "size" 7.5
+              pen "down"
+              pen "up"
+            )
             pen "size" 2.5
             pen "down"
             goto x - 7.5 self.y
             goto x - 7.5 corresponding.editorY
             goto x corresponding.editorY
             pen "up"
+            if look == "point" (
+              pen "size" 7.5
+              pen "down"
+              pen "up"
+            )
+            if look == "arrow" (
+              change_x 2
+              pen "down"
+              change -4 4
+              change 4 -4
+              change -4 -4
+              pen "up"
+            )
           )
         )
         
@@ -245,6 +268,9 @@ case "./src/devtools/menus/compiled.osl"
         case "num"
           drawNum(instruction.data)
           break
+        case "bool"
+          drawBool(instruction.data)
+          break
         case "func"
           drawArgs(instruction.args)
           break
@@ -266,9 +292,22 @@ case "./src/devtools/menus/compiled.osl"
           drawVar(instruction.name)
           break
         
+        case "asivar"
+          if instruction.op != null (
+            drawStr(instruction.op)
+          )
+          drawVar(instruction.name)
+          break
+        case "asiprop"
+          if instruction.op != null (
+            drawStr(instruction.op)
+          )
+          break
+        
         case "dupe"
           drawArgName("idx")
           drawNum(instruction.i)
+          break
       )
     )
     
@@ -278,11 +317,14 @@ case "./src/devtools/menus/compiled.osl"
       change_x -2.5
     )
     
+    def drawStr(string str) (
+      text str.JsonStringify() 9 : c#self.colors.str chx#7.5
+    )
     def drawNum(number num) (
       text num 9 : c#self.colors.num chx#7.5
     )
-    def drawStr(string str) (
-      text str.JsonStringify() 9 : c#self.colors.str chx#7.5
+    def drawBool(boolean bool) (
+      text bool.toStr() 9 : c#self.colors.bool chx#7.5
     )
     def drawColor(string col) (
       text col 9 : c#self.colors.col chx#7.5
@@ -1915,7 +1957,7 @@ case "./src/shared/document.osl"
       
       def updateInsts() (
         // inject rwl apis
-        void rtr.rwl.addToInst(self, self.rtrInst)
+        void rtr.apis.rwl.addToInst(self, self.rtrInst)
       )
       
       def update(array area) (
@@ -2189,6 +2231,9 @@ case "./src/rtr/instruction.osl"
     def num(number data) (
       return { kind: "num", data }
     )
+    def bool(boolean data) (
+      return { kind: "bool", data }
+    )
     def func(array body, array args) (
       return { kind: "func", body, args }
     )
@@ -2268,10 +2313,16 @@ case "./src/rtr/compiler.osl"
           out += rtr.instruction.pop()
           return out
         case "block"
-          local out @= compileBlock(statement.body)
-          if typeof(out) != "array" and out.isError (
-            return out
+          local body @= compileBlock(statement.body)
+          if typeof(body) != "array" and body.isError (
+            return body
           )
+          
+          local out @= []
+          
+          out += rtr.instruction.newScope()
+          out ++= body
+          out += rtr.instruction.popScope()
           
           return out
         
@@ -2293,7 +2344,9 @@ case "./src/rtr/compiler.osl"
             return body
           )
           out ++= body
-          out += rtr.instruction.jump(endLbl)
+          if hasElse (
+            out += rtr.instruction.jump(endLbl)
+          )
           
           for i statement.elifs.len (
             local elif @= statement.elifs[i]
@@ -2312,7 +2365,9 @@ case "./src/rtr/compiler.osl"
               return body
             )
             out ++= body
-            out += rtr.instruction.jump(endLbl)
+            if !(i == statement.elifs.len and statement.elseBody == null) (
+              out += rtr.instruction.jump(endLbl)
+            )
           )
           
           if statement.elseBody != null (
@@ -2518,6 +2573,9 @@ case "./src/rtr/compiler.osl"
           
           return out
         case "var"
+          if ["true","false"].contains(expression.name) (
+            return [rtr.instruction.bool(expression.name == "true")]
+          )
           return [rtr.instruction.get(expression.name)]
         case "prop"
           local out @= []
@@ -4530,6 +4588,9 @@ case "./src/rtr/main.osl"
             case "str"
               void self.stack.append(rtr.value.RTRStrValue(instruction.data))
               break
+            case "bool"
+              void self.stack.append(rtr.value.RTRBoolValue(instruction.data))
+              break
             case "num"
               void self.stack.append(rtr.value.RTRNumValue(instruction.data))
               break
@@ -6512,8 +6573,8 @@ case "./src/rwl/main.osl"
     )
   )
   return __imports__b471b13f60903428337025313115b852
-case "./src/rtr/rwl.osl"
-  class __imports__9a058537c83ea298ad90e68798b3ddc4 (
+case "./src/rtr/apis/rwl.osl"
+  class __imports__da08879ce20a927bf625b809217d8644 (
     class RTRDocument extends rtr.value.RTRValue (
       def init(object doc) (
         self.doc @= doc
@@ -6540,7 +6601,7 @@ case "./src/rtr/rwl.osl"
             for i elems.len (
               local elem @= elems[i]
               if elem.name == "RWLRoot" (
-                return rtr.rwl.RTRElement(elem)
+                return rtr.apis.rwl.RTRElement(elem)
               )
             )
             return rtr.value.RTRNullValue()
@@ -6557,33 +6618,33 @@ case "./src/rtr/rwl.osl"
               if elem == null (
                 return rtr.value.RTRNullValue()
               )
-              return rtr.rwl.RTRElement(elem)
+              return rtr.apis.rwl.RTRElement(elem)
             ), self)
           case "createTextElement"
             return rtr.value.RTROslFuncValue(def(args, _inst) -> (
-              return rtr.rwl.RTRElement(rwl.main.RWLElement(rtr.rwl.rtrValueToRwlValue(args[1]), { flags: [], pairs: [] }))
+              return rtr.apis.rwl.RTRElement(rwl.main.RWLElement(rtr.apis.rwl.rtrValueToRwlValue(args[1]), { flags: [], pairs: [] }))
             ))
           case "createScript"
             return rtr.value.RTROslFuncValue(def(args, _inst, doc) -> (
               local elem @= rwl.main.RWLScript(args[1].stringify(), { flags: [], pairs: [] }, doc.doc.rwlInst)
               void elem.start()
-              return rtr.rwl.RTRElement(elem)
+              return rtr.apis.rwl.RTRElement(elem)
             ), self)
           case "createContainer"
             return rtr.value.RTROslFuncValue(def(args, _inst) -> (
               local kind = args[1].stringify()
               switch kind (
                 case "frame"
-                  return rtr.rwl.RTRElement(rwl.main.RWLFrame([], { flags: [], pairs: [] }))
+                  return rtr.apis.rwl.RTRElement(rwl.main.RWLFrame([], { flags: [], pairs: [] }))
                 case "section"
-                  return rtr.rwl.RTRElement(rwl.main.RWLSection([], { flags: [], pairs: [] }))
+                  return rtr.apis.rwl.RTRElement(rwl.main.RWLSection([], { flags: [], pairs: [] }))
                 case "button"
-                  return rtr.rwl.RTRElement(rwl.main.RWLButton([], { flags: [], pairs: [] }))
+                  return rtr.apis.rwl.RTRElement(rwl.main.RWLButton([], { flags: [], pairs: [] }))
                 
                 default
                   throw "unknown container type" + kind
               )
-              return rtr.rwl.RTRElement(rwl.main.RWLElement(rtr.rwl.rtrValueToRwlValue(args[1]), { flags: [], pairs: [] }))
+              return rtr.apis.rwl.RTRElement(rwl.main.RWLElement(rtr.apis.rwl.rtrValueToRwlValue(args[1]), { flags: [], pairs: [] }))
             ))
           
           default
@@ -6696,7 +6757,7 @@ case "./src/rtr/rwl.osl"
               local idx = args.len > 0 ? args[1].numbify() 1
               local out @= elem.elem.children[idx]
               if out != null (
-                out @= rtr.rwl.RTRElement(out)
+                out @= rtr.apis.rwl.RTRElement(out)
               ) else (
                 out @= rtr.value.RTRNullValue()
               )
@@ -6710,7 +6771,7 @@ case "./src/rtr/rwl.osl"
         for i self.elem.header.pairs.len (
           local pair @= self.elem.header.pairs[i]
           if pair[1] == k (
-            return rtr.rwl.rwlValueToRtrValue(pair[2])
+            return rtr.apis.rwl.rwlValueToRtrValue(pair[2])
           )
         )
         return rtr.value.RTRNullValue()
@@ -6718,7 +6779,7 @@ case "./src/rtr/rwl.osl"
       
       def setItem(key, value) (
         local k = key.stringify()
-        local v @= rtr.rwl.rtrValueToRwlValue(value)
+        local v @= rtr.apis.rwl.rtrValueToRwlValue(value)
         for i self.elem.header.pairs.len (
           local pair @= self.elem.header.pairs[i]
           if pair[1] == k (
@@ -6784,7 +6845,7 @@ case "./src/rtr/rwl.osl"
       }))
     )
   )
-  return __imports__9a058537c83ea298ad90e68798b3ddc4
+  return __imports__da08879ce20a927bf625b809217d8644
 case "./src/assets/settings.rwl"
   return "  root {\n    frame [Horizontal] {\n      section [id=\"sidebar\", size=200] {\n        \n      }\n    },\n    \n    script {\n      pages := {\n        general: [\n          \"hi\"\n        ],\n        privacy: [\n        \n        ]\n      };\n      \n      for (i, pages.keys()) {\n        \n      }\n    }\n  }"
 
@@ -6798,12 +6859,13 @@ case "./test.rwl"
   return "  root [color=theme:prim] {\n    frame [Horizontal] {\n      section [size=100, rounding_tr=20, rounding_br=20] {\n        \"fr\" [color=theme:seco]\n      },\n      section {\n        frame [Vertical] {\n          section [size=50] {\n            \"maybe?\" [color=theme:text, anchor=\"l\", padding=10, size=15]\n          },\n          section [color=theme:back, rounding=20, margin_r=10, margin_b=10, padding=20] {\n            \"blehhh\" [color=theme:text],\n            \"fr\",\n            button [color=theme:prim,padding=5,rounding=5] {\n              \"hi\"\n            },\n            \":P\" [anchor=\"bl\",size=5]\n          }\n        }\n      }\n    },\n    script {\n      event(onload) {\n        log(\"blehh\");\n        \n        document.title = \"gay\";\n        document.icon = \"flag-progress\";\n      }\n    }\n  }"
 
 case "./main.rwl"
-  return "  root {\n    script {\n      event(onload) {\n        goob := #fff;\n        log(goob);\n      }\n    }\n  }"
+  return "  root {\n    script {\n      event(onload) {\n        if (true) {\n          log(\"fr\");\n        }\n        log(true, false);\n      }\n    }\n  }"
 )
 )
 import as "glass" from "packages"
 
-// import overwrite
+// fpp boilerplate
+
 
 
 object rwl @= {
@@ -6822,10 +6884,11 @@ object rtr @= {
   error: import("./src/rtr/error.osl"),
   value: import("./src/rtr/value.osl"),
   compiler: import("./src/rtr/compiler.osl"),
-  instruction: import("./src/rtr/instruction.osl")
+  instruction: import("./src/rtr/instruction.osl"),
+  apis: {}
 }
 
-rtr.rwl @= import("./src/rtr/rwl.osl")
+rtr.apis.rwl @= import("./src/rtr/apis/rwl.osl")
 
 object shared @= {
   graphics: import("./src/shared/graphics.osl"),
@@ -6905,9 +6968,17 @@ void layouts.shared.state.selectTab(1)
 
 void window.resize(900,500)
 
+currentLayout = build.package.phosphorus.layout ?? "chromeLike"
+
+if !build.built (
+  currentLayout = "summit"
+)
+
 mainloop:
+  void layouts[currentLayout].main.update()
+
   //void layouts.chromeLike.main.update()
-  void layouts.summit.main.update()
+  //void layouts.summit.main.update()
   
   // file dropping
   if file_dropped != 0 (

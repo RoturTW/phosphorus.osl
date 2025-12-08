@@ -2,8 +2,10 @@
 root {
   script {
     event(onload) {
-      goob := #fff;
-      log(goob);
+      if (true) {
+        log("fr");
+      }
+      log(true, false);
     }
   }
 }

@@ -1,7 +1,8 @@
 import as "glass" from "packages"
 
-// import overwrite
+// fpp boilerplate
 __import @= import;import @= i -> (i.endsWith(".osl") ? __import(i) open(i))
+build ??= { built: false, package: import("./opal.json").JsonParse() }
 
 object rwl @= {
   main: import("./src/rwl/main.osl"),
@@ -19,10 +20,11 @@ object rtr @= {
   error: import("./src/rtr/error.osl"),
   value: import("./src/rtr/value.osl"),
   compiler: import("./src/rtr/compiler.osl"),
-  instruction: import("./src/rtr/instruction.osl")
+  instruction: import("./src/rtr/instruction.osl"),
+  apis: {}
 }
 
-rtr.rwl @= import("./src/rtr/rwl.osl")
+rtr.apis.rwl @= import("./src/rtr/apis/rwl.osl")
 
 object shared @= {
   graphics: import("./src/shared/graphics.osl"),
@@ -102,9 +104,17 @@ void layouts.shared.state.selectTab(1)
 
 void window.resize(900,500)
 
+currentLayout = build.package.phosphorus.layout ?? "chromeLike"
+
+if !build.built (
+  currentLayout = "summit"
+)
+
 mainloop:
+  void layouts[currentLayout].main.update()
+
   //void layouts.chromeLike.main.update()
-  void layouts.summit.main.update()
+  //void layouts.summit.main.update()
   
   // file dropping
   if file_dropped != 0 (

@@ -25,7 +25,7 @@ class RTRDocument extends rtr.value.RTRValue (
         for i elems.len (
           local elem @= elems[i]
           if elem.name == "RWLRoot" (
-            return rtr.rwl.RTRElement(elem)
+            return rtr.apis.rwl.RTRElement(elem)
           )
         )
         return rtr.value.RTRNullValue()
@@ -42,33 +42,33 @@ class RTRDocument extends rtr.value.RTRValue (
           if elem == null (
             return rtr.value.RTRNullValue()
           )
-          return rtr.rwl.RTRElement(elem)
+          return rtr.apis.rwl.RTRElement(elem)
         ), self)
       case "createTextElement"
         return rtr.value.RTROslFuncValue(def(args, _inst) -> (
-          return rtr.rwl.RTRElement(rwl.main.RWLElement(rtr.rwl.rtrValueToRwlValue(args[1]), { flags: [], pairs: [] }))
+          return rtr.apis.rwl.RTRElement(rwl.main.RWLElement(rtr.apis.rwl.rtrValueToRwlValue(args[1]), { flags: [], pairs: [] }))
         ))
       case "createScript"
         return rtr.value.RTROslFuncValue(def(args, _inst, doc) -> (
           local elem @= rwl.main.RWLScript(args[1].stringify(), { flags: [], pairs: [] }, doc.doc.rwlInst)
           void elem.start()
-          return rtr.rwl.RTRElement(elem)
+          return rtr.apis.rwl.RTRElement(elem)
         ), self)
       case "createContainer"
         return rtr.value.RTROslFuncValue(def(args, _inst) -> (
           local kind = args[1].stringify()
           switch kind (
             case "frame"
-              return rtr.rwl.RTRElement(rwl.main.RWLFrame([], { flags: [], pairs: [] }))
+              return rtr.apis.rwl.RTRElement(rwl.main.RWLFrame([], { flags: [], pairs: [] }))
             case "section"
-              return rtr.rwl.RTRElement(rwl.main.RWLSection([], { flags: [], pairs: [] }))
+              return rtr.apis.rwl.RTRElement(rwl.main.RWLSection([], { flags: [], pairs: [] }))
             case "button"
-              return rtr.rwl.RTRElement(rwl.main.RWLButton([], { flags: [], pairs: [] }))
+              return rtr.apis.rwl.RTRElement(rwl.main.RWLButton([], { flags: [], pairs: [] }))
             
             default
               throw "unknown container type" + kind
           )
-          return rtr.rwl.RTRElement(rwl.main.RWLElement(rtr.rwl.rtrValueToRwlValue(args[1]), { flags: [], pairs: [] }))
+          return rtr.apis.rwl.RTRElement(rwl.main.RWLElement(rtr.apis.rwl.rtrValueToRwlValue(args[1]), { flags: [], pairs: [] }))
         ))
       
       default
@@ -181,7 +181,7 @@ class RTRElement extends rtr.value.RTRValue (
           local idx = args.len > 0 ? args[1].numbify() 1
           local out @= elem.elem.children[idx]
           if out != null (
-            out @= rtr.rwl.RTRElement(out)
+            out @= rtr.apis.rwl.RTRElement(out)
           ) else (
             out @= rtr.value.RTRNullValue()
           )
@@ -195,7 +195,7 @@ class RTRElement extends rtr.value.RTRValue (
     for i self.elem.header.pairs.len (
       local pair @= self.elem.header.pairs[i]
       if pair[1] == k (
-        return rtr.rwl.rwlValueToRtrValue(pair[2])
+        return rtr.apis.rwl.rwlValueToRtrValue(pair[2])
       )
     )
     return rtr.value.RTRNullValue()
@@ -203,7 +203,7 @@ class RTRElement extends rtr.value.RTRValue (
   
   def setItem(key, value) (
     local k = key.stringify()
-    local v @= rtr.rwl.rtrValueToRwlValue(value)
+    local v @= rtr.apis.rwl.rtrValueToRwlValue(value)
     for i self.elem.header.pairs.len (
       local pair @= self.elem.header.pairs[i]
       if pair[1] == k (

@@ -627,6 +627,9 @@ class Module (
         case "str"
           void self.stack.append(rtr.value.RTRStrValue(instruction.data))
           break
+        case "bool"
+          void self.stack.append(rtr.value.RTRBoolValue(instruction.data))
+          break
         case "num"
           void self.stack.append(rtr.value.RTRNumValue(instruction.data))
           break

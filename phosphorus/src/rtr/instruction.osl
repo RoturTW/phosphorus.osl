@@ -40,6 +40,9 @@ def str(string data) (
 def num(number data) (
   return { kind: "num", data }
 )
+def bool(boolean data) (
+  return { kind: "bool", data }
+)
 def func(array body, array args) (
   return { kind: "func", body, args }
 )
