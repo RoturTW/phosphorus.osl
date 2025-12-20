@@ -8,7 +8,7 @@ Phosphorus is the main rotur web engine (eventually) powering browsers like summ
 * Modular layout system
   * makes creating new browsers a lot easier
 * Bytecode generator and interpreter
-  * Phosphorus also uses a compiler to convert [rtr](https://docs.rotur.dev/languages/rtr) to a flat instruction based language for speed
+  * Phosphorus uses a compiler to convert [rtr](https://docs.rotur.dev/languages/rtr) to a flat instruction based language for speed
 
 idk what else to put here 😔
 
