@@ -3,6 +3,12 @@ Phosphorus is the main rotur web engine (eventually) powering browsers like summ
 
 <img width="1252" height="710" alt="phosphorus" src="https://raw.githubusercontent.com/RoturTW/phosphorus/refs/heads/main/assets/phosphorus.png" />
 
+# How to clone locally (on [origin](https://origin.mistium.com))
+* download [phosphorus.json](https://github.com/RoturTW/phosphorus/blob/main/phosphorus.json) and [unzip.osl](https://github.com/RoturTW/phosphorus/blob/main/unzip.osl)
+* create a folder in originOS, e.g. a projects folder
+* copy both phosphorus.json and unzip.osl into there
+* run unzip.osl, either by double clicking it in files or running it through studio
+
 # Features
 
 * Modular layout system
