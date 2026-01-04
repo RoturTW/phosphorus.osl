@@ -9,6 +9,11 @@ Phosphorus is the main rotur web engine (eventually) powering browsers like summ
 * copy both phosphorus.json and unzip.osl into there
 * run unzip.osl, either by double clicking it in files or running it through studio
 
+# How to build locally
+* make sure [fpp](https://github.com/Flufi-Boi/fpp) is installed (in ~/:path)
+* go into terminal and navigate to your cloned version of phosphorus, e.g. ~/projects/phosphorus
+* run the command `fpp run build` or if you want just 1 layout, `fpp run build-layoutName`
+
 # Features
 
 * Modular layout system
