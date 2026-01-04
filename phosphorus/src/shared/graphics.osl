@@ -3,7 +3,7 @@ _canvasID = null
 _canvas = null
 
 def init() (
-  if shared.config.browser.phosphorus.usesCanvas (
+  if shared.config.browser.phosphorus.useCanvas (
     self._canvasID = OuidNew()
     self._canvas @= shared.canvas.createCanvas(self._canvasID, window.width, window.height)
     log self
@@ -53,32 +53,46 @@ def filledBox(array area, rounding, string color) (
   local w = rwl.area.width(area)
   local h = rwl.area.height(area)
   
+  if typeof(rounding) == "number" (
+    rounding @= [rounding,rounding,rounding,rounding]
+  )
+  
   c color
   
   if typeof(rounding) == "number" (
     goto x y
-    square w - (rounding * 2) h - (rounding * 2) (rounding * 2)
+    frame area[1] area[4] area[3] area[2] (
+      local r = max(rounding * 2 - 10, 0)
+      square w - r h - r r
+    )
   ) else if typeof(rounding) == "array" (
     // could rework this to have it be corner - rounding for pos
     // so it would have higher parity with canvas?
     x = round(x)
     y = round(y)
+    local hw = w / 2
+    local hh = h / 2
     goto x y
-    frame area[1] y + 1 x area[2] (
-      local r = min(rounding[1] * 2, min(w, h) / 2)
-      square w - r h - r r
+    //local r = min(rounding[1] * 2, min(w, h) / 2)
+    frame area[1] y x area[2] (
+      local r = max(rounding[1] * 2, 0)
+      goto frame.left + hw frame.bottom + hh
+      square frame.width * 2 - r frame.height * 2 - r r
     )
-    frame x y + 1 area[3] area[2] (
-      local r = min(rounding[2] * 2, min(w, h) / 2)
-      square w - r h - r r
+    frame x y area[3] area[2] (
+      local r = max(rounding[2] * 2, 0)
+      goto frame.right - hw frame.bottom + hh
+      square frame.width * 2 - r frame.height * 2 - r r
     )
     frame area[1] area[4] x y (
-      local r = min(rounding[3] * 2, min(w, h) / 2)
-      square w - r h - r r
+      local r = max(rounding[3] * 2, 0)
+      goto frame.left + hw frame.top - hh
+      square frame.width * 2 - r frame.height * 2 - r r
     )
     frame x area[4] area[3] y (
-      local r = min(rounding[4] * 2, min(w, h) / 2)
-      square w - r h - r r
+      local r = max(rounding[4] * 2, 0)
+      goto frame.right - hw frame.top - hh
+      square frame.width * 2 - r frame.height * 2 - r r
     )
   )
 )

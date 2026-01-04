@@ -351,7 +351,7 @@ class Parser (
     local q @= self.expects(["'","\"","`"])
     local content = ""
     local end = false
-    while (!end) (
+    while !end (
       local tkn @= self.peek()
       if tkn == "\\" (
         void self.consume()

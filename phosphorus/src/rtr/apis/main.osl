@@ -1,0 +1,13 @@
+
+// applies apis to rtr
+def addToInst(object doc, object rtrInst) (
+  local mods @= rtrInst.modules.getValues()
+  for i mods.len (
+    addToMod(doc, mods[i])
+  )
+)
+
+def addToMod(object doc, object mod) (
+  void rtr.apis.rwl.addToMod(doc, mod)
+  void rtr.apis.browser.addToMod(doc, mod)
+)

@@ -5,6 +5,7 @@ class Document (
     
     self.started = false
     self.shouldBeAlive = false
+    self.focused = false
   )
   
   def close() (
@@ -43,8 +44,8 @@ class Document (
   )
   
   def updateInsts() (
-    // inject rwl apis
-    void rtr.apis.rwl.addToInst(self, self.rtrInst)
+    // inject apis
+    void rtr.apis.main.addToInst(self, self.rtrInst)
   )
   
   def update(array area) (

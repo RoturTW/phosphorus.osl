@@ -1,10 +1,14 @@
-build @= { built: true, package: {"name":"phosphorus","version":"1.0.0","description":"rotur web engine","main":"script.osl","dependencies":{},"tags":[],"include":["./main.rwl","./test.rwl","./sidebartest.rwl","./src/assets/empty.rwl","./src/assets/settings.rwl"],"phosphorus":{"layout":"summit"},"scripts":{"opaljson-summit":"osl ./scripts/opal_summit.osl","build-summit":["fpp script opaljson-summit","fpp build","rm build/script-summit.osl","mv build/script.osl build/script-summit.osl","echo \"summit build complete!\""],"opaljson-chromeLike":"osl ./scripts/opal_chromeLike.osl","build-chromeLike":["fpp script opaljson-chromeLike","fpp build","rm build/script-chromeLike.osl","mv build/script.osl build/script-chromeLike.osl","echo \"chromeLike build complete!\""],"build":["fpp script build-summit","fpp script build-chromeLike"]}} }
+build @= { built: true, package: {"name":"summit","version":"1.0.0a","description":"rotur web engine","main":"script.osl","dependencies":{},"tags":[],"include":["./main.rwl","./test.rwl","./sidebartest.rwl"],"phosphorus":{"layout":"summit","hasDevtools":true},"scripts":{"opaljson-summit":"osl ./scripts/opal_summit.osl","opaljson-chromeLike":"osl ./scripts/opal_chromeLike.osl","opaljson-reset":"osl ./scripts/opal_reset.osl","build-summit":["fpp script opaljson-summit","fpp build","rm build/script-summit.osl","mv build/script.osl build/script-summit.osl","echo \"summit build complete!\""],"build-chromeLike":["fpp script opaljson-chromeLike","fpp build","rm build/script-chromeLike.osl","mv build/script.osl build/script-chromeLike.osl","echo \"chromeLike build complete!\""],"build":["fpp script build-summit","fpp script build-chromeLike","fpp script opaljson-reset"]}} }
 opal_imports = {}
 def import(path) (
   switch path (
 
+case "./src/assets/settings.rwl"
+  return "  root {\n    frame [Horizontal, color=theme:prim] {\n      section [id=\"sidebar\", size=150] {\n        \n      },\n      section {\n        frame [Vertical] {\n          section [size=40, padding=10] {\n            \"loading...\" [\n              id=\"location\",\n              color=theme:text,\n              size=12, anchor=\"l\"\n            ]\n          },\n          section [color=theme:back, rounding_tl=10] {\n            \n          }\n        }\n      }\n    },\n    \n    script {\n      event(onload) {\n        setLocation := (text) ~ {\n          document.getElement(\"location\").text = text;\n        };\n        setLocation(\"bleh\");\n        \n        sidebar := document.getElement(\"sidebar\");\n        \n        categories := $$brwsr.settings.getCategories();\n        i := 0;\n        for (category, categories) {\n          i += 1;\n          buttonElem := document.createContainer(\"button\");\n          \n          buttonElem.margin = 7.5;\n          if (i == 1) {\n            buttonElem.anchor = \"tl\";\n            buttonElem.margin_t = 10;\n          } else {\n            buttonElem.margin_t = 0;\n          }\n          buttonElem.height = 35;\n          buttonElem.rounding = 10;\n          buttonElem.hover_color = theme.seco;\n          buttonElem.id = \"cat_\" + category;\n          \n          titleElem := document.createTextElement(toTitle(category));\n          titleElem.color = theme.text;\n          titleElem.size = 11;\n          \n          buttonElem.addChild(titleElem);\n          script := document.createScript(join(\n            \"setLocation := (text) ~ {document.getElement(\\\"location\\\").text = text;};\\n\",\n            \"event(#\" + buttonElem.id + \":click) {\\n\",\n            \"  setLocation(\\\"\" + buttonElem.id + \"\\\");\\n\",\n            \"}\\n\"\n          ));\n          buttonElem.addChild(script);\n          \n          sidebar.addChild(buttonElem);\n        }\n      }\n    }\n  }"
+
 case "./src/devtools/menus/compiled.osl"
   class __imports__c2496c7321897b9bfcdc4b07bd6e8f28 (
+    number offsetX = 0
     boolean exit = false
     selectedCode = null
     
@@ -110,6 +114,12 @@ case "./src/devtools/menus/compiled.osl"
     )
     
     def update() (
+      if !shared.config.browser.phosphorus.useCompiler (
+        goto 0 0
+        centext "compiler disabled" 10 : c#shared.theme.prim
+        return
+      )
+      
       local inst @= self.getInst()
       
       if self.selectedCode == null (
@@ -147,6 +157,7 @@ case "./src/devtools/menus/compiled.osl"
       ) else (
         self.y = frame.top + frame.scroll
         local start = self.y
+        self.offsetX = 0
         drawInstructions(self.selectedCode.body, frame.left + 15)
         self.height = start - self.y - 10
       )
@@ -182,8 +193,13 @@ case "./src/devtools/menus/compiled.osl"
       
       self.y -= height / 2
       instruction.editorY = self.y
+      
+      if instruction.kind == "popScope" (
+        self.offsetX -= 10
+      )
+      
       if !(self.y - height > frame.top or self.y < frame.bottom) (
-        local fromleft = x - frame.left
+        local fromleft = x + self.offsetX - frame.left
         goto fromleft / 2 self.y
         square frame.width - fromleft height 0 0 1
         if mouse_touching (
@@ -195,7 +211,7 @@ case "./src/devtools/menus/compiled.osl"
             // "arrow" | "point"
             local look = "arrow"
             c shared.theme.tert
-            goto x self.y
+            goto x + self.offsetX self.y
             if look == "point" (
               pen "size" 7.5
               pen "down"
@@ -203,9 +219,9 @@ case "./src/devtools/menus/compiled.osl"
             )
             pen "size" 2.5
             pen "down"
-            goto x - 7.5 self.y
-            goto x - 7.5 corresponding.editorY
-            goto x corresponding.editorY
+            goto x + self.offsetX - 7.5 self.y
+            goto x + self.offsetX - 7.5 corresponding.editorY
+            goto x + self.offsetX corresponding.editorY
             pen "up"
             if look == "point" (
               pen "size" 7.5
@@ -223,7 +239,7 @@ case "./src/devtools/menus/compiled.osl"
           )
         )
         
-        goto x + 5 self.y
+        goto x + 5 + self.offsetX self.y
         
         c shared.theme.text
         local categories @= self.highlighting.getValues()
@@ -242,6 +258,10 @@ case "./src/devtools/menus/compiled.osl"
       
       if instruction.kind == "func" (
         drawInstructions(instruction.body, x + 20)
+      )
+      
+      if instruction.kind == "newScope" (
+        self.offsetX += 10
       )
     )
     
@@ -516,7 +536,7 @@ case "./src/devtools/menus/console.osl"
           local parser @= rtr.ast.Parser("event(onload){return(" ++ promiseData ++ ");}")
           self.ast @= parser.parse()
           self.mod @= rtr.main.Module(self.ast)
-          void rtr.rwl.addToMod(layouts.shared.state.currentDocument, self.mod)
+          void rtr.apis.main.addToMod(layouts.shared.state.currentDocument, self.mod)
           void promiseData2.addModule(self.mod)
           local ret @= mod.runEventRaw({
             name: "onload"
@@ -764,6 +784,182 @@ case "./src/devtools/menus/elements.osl"
     )
   )
   return __imports__7de0f89117b2e081473955ae82bcf430
+case "./src/devtools/rightclick.osl"
+  class __imports__0598a8fc1c085cefe2171384b023fe8b (
+    array topbar_more = [
+      ["Dock",
+        {"left": def() -> (
+          void shared.settings.set("devtools", "dockside", "l")
+        )},
+        {"right": def() -> (
+          void shared.settings.set("devtools", "dockside", "r")
+        )}
+      ]
+    ]
+  )
+  return __imports__0598a8fc1c085cefe2171384b023fe8b
+case "./src/devtools/topbar.osl"
+  class __imports__3261b0e52c0051dec0dc6394c943d033 (
+    tabs_scroll = 0
+    tabs_width = 0
+    
+    def update() (
+      square frame.width frame.height 0 0 1
+      if mouse_touching (
+        self.tabs_scroll += scroll.x.velocity + scroll.y.velocity * -1.5 * scroll.multiplier
+      )
+      
+      self.tabs_scroll = min(self.tabs_scroll, self.tabs_width - frame.width)
+      self.tabs_scroll = max(self.tabs_scroll, 0)
+      
+      local x = frame.left - self.tabs_scroll
+      local start = x
+      local menus @= devtools.menus.getEntries()
+      for i menus.len (
+        local menu @= menus[i]
+        
+        local title = menu[1].toTitle()
+        local w = title.len * 8 + 10
+        
+        x += w / 2
+        
+        goto x 0
+        square w - 10 10 10 0 1
+        c devtools.main.menu == menu[1] ? shared.theme.seco shared.theme.prim
+        if mouse_touching (
+          c shared.theme.tert
+          cursor "pointer"
+          if onclick (
+            void shared.settings.set("devtools", "menu", menu[1])
+          )
+        )
+        pen "size" 2
+        line w / -2 -11 w / 2 -11
+        centext title 8 : c#shared.theme.text
+        
+        x += w / 2
+      )
+      self.tabs_width = x - start
+    )
+  )
+  return __imports__3261b0e52c0051dec0dc6394c943d033
+case "./src/devtools/main.osl"
+  class __imports__87f5572a1b07abb6f61e525f0557da7a (
+    string anchor = "r"
+    number width = 350
+    boolean open = false
+    
+    number saveWidth = 350
+    number resizingEdge = 0
+    
+    hoveredElement = 0
+    
+    string menu = "console"
+    
+    def alwaysUpdate() (
+      self.hoveredElement = 0
+    )
+    
+    def update(array area, array rawArea) (
+      goto rwl.area.centerX(area) rwl.area.centerY(area)
+      square rwl.area.width(area) - 10 rwl.area.height(area) - 10 10 : c#shared.theme.back
+      
+      local h = 25
+      frame area[1] area[4] area[3] area[4] - h (
+        goto 0 -5
+        square frame.width - 10 frame.height 10 : c#shared.theme.prim
+        
+        goto frame.right - 12.5 0
+        icon "more-vertical" .5 : c#shared.theme.text
+        if mouse_touching (
+          cursor "pointer"
+          if onclick (
+            local p @= Promise.new(() -> (
+              while mouse_down (
+                defer
+              )
+              open_rightclick devtools.rightclick.topbar_more
+            ))
+          )
+        )
+      )
+      frame area[1] area[4] area[3] - 25 area[4] - h (
+        void devtools.topbar.update()
+      )
+      
+      if mouse_y > area[2] and mouse_y < area[4] (
+        if anchor == "r" and abs(mouse_x - area[1]) < 5 (
+          cursor "col-resize"
+          goto mouse_x mouse_y
+          square 100 100 0 0 1
+          if onclick (
+            self.resizingEdge = 1
+          )
+        )
+        if anchor == "l" and abs(mouse_x - area[3]) < 5 (
+          cursor "col-resize"
+          goto mouse_x mouse_y
+          square 100 100 0 0 1
+          if onclick (
+            self.resizingEdge = 3
+          )
+        )
+      )
+      
+      if !mouse_down (
+        self.resizingEdge = 0
+      )
+      
+      if self.resizingEdge != 0 (
+        self.width = abs(mouse_x - area[4 - self.resizingEdge])
+      )
+      self.width = min(self.width, rwl.area.width(rawArea) - 200)
+      self.width = max(self.width, 200)
+      
+      local menu @= devtools.menus[self.menu]
+      
+      c shared.theme.prim
+      local topbarH = 0
+      if menu.topbar != null (
+        topbarH = menu.topbarHeight ?? 25
+        frame area[1] area[4] - h area[3] area[4] - h - topbarH (
+          void menu.topbar()
+        )
+        local w = rwl.area.width(area)
+        goto rwl.area.centerX(area) area[4] - h - topbarH
+        pen "size" 2
+        line w / -2 -1 w / 2 -1 : c#shared.theme.prim
+        topbarH += 1
+      )
+      
+      c shared.theme.prim
+      local bottombarH = 0
+      if menu.bottombar != null (
+        bottombarH = menu.bottombarHeight ?? 25
+        frame area[1] area[4] - h area[3] area[4] - h - bottombarH (
+          void menu.bottombar()
+        )
+        local w = rwl.area.width(area)
+        goto rwl.area.centerX(area) area[2] + bottombarH
+        pen "size" 2
+        line w / -2 1 w / 2 1 : c#shared.theme.prim
+        bottombarH += 1
+      )
+      
+      c shared.theme.prim
+      frame area[1] area[4] - h - topbarH area[3] area[2] + bottombarH [menu.width,menu.height] "devtools_" ++ self.menu (
+        if menu != null (
+          if menu.update != null (
+            void menu.update()
+          )
+        ) else (
+          goto 0 0
+          centext "no open devtools menu" 9 : c#shared.theme.prim
+        )
+      )
+    )
+  )
+  return __imports__87f5572a1b07abb6f61e525f0557da7a
 case "./src/layouts/summit/topbar.osl"
   class __imports__6a477e7780a631dfc33d414269cd6008 (
     def update(array area) (
@@ -1124,7 +1320,9 @@ case "./src/layouts/shared/view.osl"
         void layouts.shared.state.currentDocument.render(contentArea)
       )
       
-      void devtools.main.alwaysUpdate()
+      if devtools.main != null (
+        void devtools.main.alwaysUpdate()
+      )
       if devtools.main.open (
         void devtools.main.update(devtoolsArea, area)
       )
@@ -1277,6 +1475,9 @@ case "./src/layouts/shared/state.osl"
     )
     
     def updateTab() (
+      if self.currentDocument != null (
+        self.currentDocument.focused = false
+      )
       self.currentDocument @= self.tabs[self.currentTab].document
       if self.currentDocument.url != null (
         inputs[layouts.shared.urlbar.inputId] = self.currentDocument.url.format()
@@ -1286,186 +1487,23 @@ case "./src/layouts/shared/state.osl"
       if inputs.selected.id == layouts.shared.urlbar.inputId (
        input "unfocus"
       )
+      
+      if self.currentDocument != null (
+        self.currentDocument.focused = true
+        
+        // fix for while workers be goofy
+        void self.currentDocument.createWorker()
+      )
       //self.currentDocument ??= shared.document.Document()
     )
   )
   return __imports__d1763f06b30a5d5d9c10608cf0f00c3e
-case "./src/devtools/rightclick.osl"
-  class __imports__0598a8fc1c085cefe2171384b023fe8b (
-    array topbar_more = [
-      ["Dock",
-        {"left": def() -> (
-          void shared.settings.set("devtools", "dockside", "l")
-        )},
-        {"right": def() -> (
-          void shared.settings.set("devtools", "dockside", "r")
-        )}
-      ]
-    ]
-  )
-  return __imports__0598a8fc1c085cefe2171384b023fe8b
-case "./src/devtools/topbar.osl"
-  class __imports__3261b0e52c0051dec0dc6394c943d033 (
-    tabs_scroll = 0
-    tabs_width = 0
-    
-    def update() (
-      square frame.width frame.height 0 0 1
-      if mouse_touching (
-        self.tabs_scroll += scroll.x.velocity + (scroll.y.velocity * -1.5) * scroll.multiplier
-      )
-      
-      self.tabs_scroll = min(self.tabs_scroll, self.tabs_width - frame.width)
-      self.tabs_scroll = max(self.tabs_scroll, 0)
-      
-      local x = frame.left - self.tabs_scroll
-      local start = x
-      local menus @= devtools.menus.getEntries()
-      for i menus.len (
-        local menu @= menus[i]
-        
-        local title = menu[1].toTitle()
-        local w = title.len * 8 + 10
-        
-        x += w / 2
-        
-        goto x 0
-        square w - 10 10 10 0 1
-        c devtools.main.menu == menu[1] ? shared.theme.seco shared.theme.prim
-        if mouse_touching (
-          c shared.theme.tert
-          cursor "pointer"
-          if onclick (
-            void shared.settings.set("devtools", "menu", menu[1])
-          )
-        )
-        pen "size" 2
-        line w / -2 -11 w / 2 -11
-        centext title 8 : c#shared.theme.text
-        
-        x += w / 2
-      )
-      self.tabs_width = x - start
-    )
-  )
-  return __imports__3261b0e52c0051dec0dc6394c943d033
-case "./src/devtools/main.osl"
-  class __imports__87f5572a1b07abb6f61e525f0557da7a (
-    string anchor = "r"
-    number width = 350
-    boolean open = false
-    
-    number saveWidth = 350
-    number resizingEdge = 0
-    
-    hoveredElement = 0
-    
-    string menu = "console"
-    
-    def alwaysUpdate() (
-      self.hoveredElement = 0
-    )
-    
-    def update(array area, array rawArea) (
-      goto rwl.area.centerX(area) rwl.area.centerY(area)
-      square rwl.area.width(area) - 10 rwl.area.height(area) - 10 10 : c#shared.theme.back
-      
-      local h = 25
-      frame area[1] area[4] area[3] area[4] - h (
-        goto 0 -5
-        square frame.width - 10 frame.height 10 : c#shared.theme.prim
-        
-        goto frame.right - 12.5 0
-        icon "more-vertical" .5 : c#shared.theme.text
-        if mouse_touching (
-          cursor "pointer"
-          if onclick (
-            local p @= Promise.new(() -> (
-              while mouse_down (
-                defer
-              )
-              open_rightclick devtools.rightclick.topbar_more
-            ))
-          )
-        )
-      )
-      frame area[1] area[4] area[3] - 25 area[4] - h (
-        void devtools.topbar.update()
-      )
-      
-      if mouse_y > area[2] and mouse_y < area[4] (
-        if anchor == "r" and abs(mouse_x - area[1]) < 5 (
-          cursor "col-resize"
-          goto mouse_x mouse_y
-          square 100 100 0 0 1
-          if onclick (
-            self.resizingEdge = 1
-          )
-        )
-        if anchor == "l" and abs(mouse_x - area[3]) < 5 (
-          cursor "col-resize"
-          goto mouse_x mouse_y
-          square 100 100 0 0 1
-          if onclick (
-            self.resizingEdge = 3
-          )
-        )
-      )
-      
-      if !mouse_down (
-        self.resizingEdge = 0
-      )
-      
-      if self.resizingEdge != 0 (
-        self.width = abs(mouse_x - area[4 - self.resizingEdge])
-      )
-      self.width = min(self.width, rwl.area.width(rawArea) - 200)
-      self.width = max(self.width, 200)
-      
-      local menu @= devtools.menus[self.menu]
-      
-      c shared.theme.prim
-      local topbarH = 0
-      if menu.topbar != null (
-        topbarH = menu.topbarHeight ?? 25
-        frame area[1] area[4] - h area[3] area[4] - h - topbarH (
-          void menu.topbar()
-        )
-        local w = rwl.area.width(area)
-        goto rwl.area.centerX(area) area[4] - h - topbarH
-        pen "size" 2
-        line w / -2 -1 w / 2 -1 : c#shared.theme.prim
-        topbarH += 1
-      )
-      
-      c shared.theme.prim
-      local bottombarH = 0
-      if menu.bottombar != null (
-        bottombarH = menu.bottombarHeight ?? 25
-        frame area[1] area[4] - h area[3] area[4] - h - bottombarH (
-          void menu.bottombar()
-        )
-        local w = rwl.area.width(area)
-        goto rwl.area.centerX(area) area[2] + bottombarH
-        pen "size" 2
-        line w / -2 1 w / 2 1 : c#shared.theme.prim
-        bottombarH += 1
-      )
-      
-      c shared.theme.prim
-      frame area[1] area[4] - h - topbarH area[3] area[2] + bottombarH [menu.width,menu.height] "devtools_" ++ self.menu (
-        if menu != null (
-          if menu.update != null (
-            void menu.update()
-          )
-        ) else (
-          goto 0 0
-          centext "no open devtools menu" 9 : c#shared.theme.prim
-        )
-      )
-    )
-  )
-  return __imports__87f5572a1b07abb6f61e525f0557da7a
+case "./src/assets/home.rwl"
+  return "  root {\n    \"hi\"\n  }"
+
+case "./src/assets/empty.rwl"
+  return "  root {\n    \"grahhh\"\n  }"
+
 case "./src/net/response.osl"
   class __imports__f336b41d073413cbdabb122f71c530f0 (
     class Response (
@@ -1493,7 +1531,14 @@ case "./src/net/response.osl"
       )
       
       def update() (
-        void self.fetch()
+        if self.isFinished (
+          return
+        )
+        local out @= self.fetch()
+        if out != null (
+          self.isFinished = true
+          self.content @= out
+        )
       )
     )
   )
@@ -1511,6 +1556,20 @@ case "./src/net/fetch.osl"
           self.isFinished = true
         )
         r.f @= f
+        return r
+      )
+      if url.scheme == shared.config.url.browser_scheme (
+        local r @= net.response.ValidResponse(url)
+        local page @= browserPages[url.domain_name]
+        if typeof(page) == "string" (
+          r.fetch @= def() -> (
+            self.content = self.data
+            self.isFinished = true
+          )
+          r.data @= page
+        ) else (
+          r.fetch @= page ?? (() -> ())
+        )
         return r
       )
     
@@ -1727,7 +1786,7 @@ case "./src/shared/input.osl"
 case "./src/shared/tab_worker.osl"
   class __imports__ed11349f32bd7389fac05d89b56e016d (
     def oncreate() (
-      
+      self.ouid = OuidNew()
     )
     
     def onframe() (
@@ -1739,7 +1798,7 @@ case "./src/shared/tab_worker.osl"
           self.parseText = null
         )
       )
-      if self.document != null (
+      if self.document != null and self.document.focused (
         void self.document.rwlInst.interactUpdate({
           rtr: self.document.rtrInst
         })
@@ -1749,6 +1808,7 @@ case "./src/shared/tab_worker.osl"
         for i mods.len (
           void mods[i].runEventQueue()
         )
+        void shared.input.reset()
       )
     )
   )
@@ -1780,6 +1840,8 @@ case "./src/shared/config.osl"
     )
     
     class url (
+      string browser_scheme = build.package.phosphorus.browser_scheme ?? "phos"
+      
       class defaults (
         string scheme = "rtr"
         string name = "unknown"
@@ -1788,17 +1850,17 @@ case "./src/shared/config.osl"
     )
     
     class browser (
-      string name = "phosphorus"
-      array developers = ["flufi"]
-      string version = "1.0.0a"
+      string name = build.package.name ?? "phosphorus"
+      array developers = build.package.developers ?? ["flufi"]
+      string version = build.package.version ?? "1.0.0a"
       
       // browserName@developer
-      string save_developer = "rotur"
+      string save_developer = build.package.save_developer ?? "rotur"
       
       class phosphorus (
         string version = "1.0.0a"
         
-        boolean usesCanvas = false
+        boolean useCanvas = false
         boolean useCompiler = true
       )
     )
@@ -1869,6 +1931,10 @@ case "./src/shared/url.osl"
         self.path = match[13]
         self.params @= {}
         self.resource = match[10] ?? "index.rwl"
+        
+        if self.scheme == shared.config.url.browser_scheme (
+          self.domain_top = null
+        )
       )
       
       def format() (
@@ -1918,6 +1984,7 @@ case "./src/shared/document.osl"
         
         self.started = false
         self.shouldBeAlive = false
+        self.focused = false
       )
       
       def close() (
@@ -1956,8 +2023,8 @@ case "./src/shared/document.osl"
       )
       
       def updateInsts() (
-        // inject rwl apis
-        void rtr.apis.rwl.addToInst(self, self.rtrInst)
+        // inject apis
+        void rtr.apis.main.addToInst(self, self.rtrInst)
       )
       
       def update(array area) (
@@ -2080,7 +2147,7 @@ case "./src/shared/graphics.osl"
     _canvas = null
     
     def init() (
-      if shared.config.browser.phosphorus.usesCanvas (
+      if shared.config.browser.phosphorus.useCanvas (
         self._canvasID = OuidNew()
         self._canvas @= shared.canvas.createCanvas(self._canvasID, window.width, window.height)
         log self
@@ -2130,32 +2197,46 @@ case "./src/shared/graphics.osl"
       local w = rwl.area.width(area)
       local h = rwl.area.height(area)
       
+      if typeof(rounding) == "number" (
+        rounding @= [rounding,rounding,rounding,rounding]
+      )
+      
       c color
       
       if typeof(rounding) == "number" (
         goto x y
-        square w - (rounding * 2) h - (rounding * 2) (rounding * 2)
+        frame area[1] area[4] area[3] area[2] (
+          local r = max(rounding * 2 - 10, 0)
+          square w - r h - r r
+        )
       ) else if typeof(rounding) == "array" (
         // could rework this to have it be corner - rounding for pos
         // so it would have higher parity with canvas?
         x = round(x)
         y = round(y)
+        local hw = w / 2
+        local hh = h / 2
         goto x y
-        frame area[1] y + 1 x area[2] (
-          local r = min(rounding[1] * 2, min(w, h) / 2)
-          square w - r h - r r
+        //local r = min(rounding[1] * 2, min(w, h) / 2)
+        frame area[1] y x area[2] (
+          local r = max(rounding[1] * 2, 0)
+          goto frame.left + hw frame.bottom + hh
+          square frame.width * 2 - r frame.height * 2 - r r
         )
-        frame x y + 1 area[3] area[2] (
-          local r = min(rounding[2] * 2, min(w, h) / 2)
-          square w - r h - r r
+        frame x y area[3] area[2] (
+          local r = max(rounding[2] * 2, 0)
+          goto frame.right - hw frame.bottom + hh
+          square frame.width * 2 - r frame.height * 2 - r r
         )
         frame area[1] area[4] x y (
-          local r = min(rounding[3] * 2, min(w, h) / 2)
-          square w - r h - r r
+          local r = max(rounding[3] * 2, 0)
+          goto frame.left + hw frame.top - hh
+          square frame.width * 2 - r frame.height * 2 - r r
         )
         frame x area[4] area[3] y (
-          local r = min(rounding[4] * 2, min(w, h) / 2)
-          square w - r h - r r
+          local r = max(rounding[4] * 2, 0)
+          goto frame.right - hw frame.top - hh
+          square frame.width * 2 - r frame.height * 2 - r r
         )
       )
     )
@@ -2188,6 +2269,312 @@ case "./src/shared/graphics.osl"
     )
   )
   return __imports__8840a5e065c53e817186a2216f863bca
+case "./src/rtr/apis/browser.osl"
+  class __imports__7fe61a304bd2774f13f2fe6e50c50f2a (
+    def addToMod(object doc, object mod) (
+      void mod.declScopeVar("$$brwsr", rtr.value.RTRObjValue({
+        settings: rtr.value.RTRObjValue({
+          getCategories: rtr.value.RTROslFuncValue(def() -> (
+            return rtr.value.RTRArrValue(shared.settings.entries.getKeys().map(c -> rtr.value.RTRStrValue(c)))
+          )),
+          getCategory: rtr.value.RTROslFuncValue(def() -> (
+          
+          ))
+        })
+      }))
+    )
+  )
+  return __imports__7fe61a304bd2774f13f2fe6e50c50f2a
+case "./src/rtr/apis/rwl.osl"
+  class __imports__da08879ce20a927bf625b809217d8644 (
+    class RTRDocument extends rtr.value.RTRValue (
+      def init(object doc) (
+        self.doc @= doc
+      )
+    
+      def getRtrType() (
+        return rtr.value.RTRTypeValue({
+          name: "document"
+        })
+      )
+      
+      def getItem(key) (
+        switch key.stringify() (
+          // values
+          case "title"
+            return rtr.value.RTRStrValue(self.doc.title)
+          case "icon"
+            if self.doc.icon == null (
+              return rtr.value.RTRNullValue()
+            )
+            return rtr.value.RTRStrValue(self.doc.icon)
+          case "root"
+            local elems @= self.doc.rwlInst.elements
+            for i elems.len (
+              local elem @= elems[i]
+              if elem.name == "RWLRoot" (
+                return rtr.apis.rwl.RTRElement(elem)
+              )
+            )
+            return rtr.value.RTRNullValue()
+          
+          // methods
+          case "redirect"
+            return rtr.value.RTROslFuncValue(def(args, _inst, doc) -> (
+              void doc.doc.loadUrl(shared.url.Url(args[1].stringify()))
+              void layouts.shared.state.updateTab()
+            ), self)
+          case "getElement"
+            return rtr.value.RTROslFuncValue(def(args, _inst, doc) -> (
+              local elem @= doc.doc.rwlInst.getElement(args[1].stringify())
+              if elem == null (
+                return rtr.value.RTRNullValue()
+              )
+              return rtr.apis.rwl.RTRElement(elem)
+            ), self)
+          case "createTextElement"
+            return rtr.value.RTROslFuncValue(def(args, _inst) -> (
+              return rtr.apis.rwl.RTRElement(rwl.main.RWLElement(rtr.apis.rwl.rtrValueToRwlValue(args[1]), { flags: [], pairs: [] }))
+            ))
+          case "createScript"
+            return rtr.value.RTROslFuncValue(def(args, _inst, doc) -> (
+              local elem @= rwl.main.RWLScript(args[1].stringify(), { flags: [], pairs: [] }, doc.doc.rwlInst)
+              void rtr.apis.main.addToMod(doc.doc, elem.mod)
+              void elem.start()
+              return rtr.apis.rwl.RTRElement(elem)
+            ), self)
+          case "createContainer"
+            return rtr.value.RTROslFuncValue(def(args, _inst) -> (
+              local kind = args[1].stringify()
+              switch kind (
+                case "frame"
+                  return rtr.apis.rwl.RTRElement(rwl.main.RWLFrame([], { flags: [], pairs: [] }))
+                case "section"
+                  return rtr.apis.rwl.RTRElement(rwl.main.RWLSection([], { flags: [], pairs: [] }))
+                case "button"
+                  return rtr.apis.rwl.RTRElement(rwl.main.RWLButton([], { flags: [], pairs: [] }))
+                
+                default
+                  throw "unknown container type" + kind
+              )
+              return rtr.apis.rwl.RTRElement(rwl.main.RWLElement(rtr.apis.rwl.rtrValueToRwlValue(args[1]), { flags: [], pairs: [] }))
+            ))
+          
+          default
+            throw "unknown property" + key.stringify() + "on document"
+        )
+      )
+      
+      def setItem(key, value) (
+        switch key.stringify() (
+          case "title"
+            self.doc.title = value.stringify()
+            break
+          case "icon"
+            self.doc.icon = value.stringify()
+            break
+          default
+            throw "cannot set property" + key.stringify() + "on document"
+        )
+      )
+    )
+    
+    class RTRElement extends rtr.value.RTRValue (
+      isRwlElem = true
+      
+      def init(object elem) (
+        self.elem @= elem
+      )
+    
+      def getRtrType() (
+        return rtr.value.RTRTypeValue({
+          name: "element"
+        })
+      )
+      
+      def stringify() (
+        local txt = (self.elem.blockName ?? self.elem.kind).toStr()
+        if self.elem.id != null (
+          txt ++= ":" ++ self.elem.id
+        )
+        return "<" ++ txt ++ ">"
+      )
+      
+      def getItem(key) (
+        local k = key.stringify()
+        
+        switch k (
+          case "toggleFlag"
+            return rtr.value.RTROslFuncValue(def(args, _inst, elem) -> (
+              local flags @= elem.elem.header.flags
+              local name = args[1].stringify()
+              
+              if flags.contains(name) (
+                void flags.delete(flags.index(name))
+              ) else (
+                void flags.append(name)
+              )
+              
+              elem.elem.needsUpdate = true
+              void elem.elem.checkUpdate()
+            ), self)
+          case "addFlag"
+            return rtr.value.RTROslFuncValue(def(args, _inst, elem) -> (
+              local flags @= elem.elem.header.flags
+              local name = args[1].stringify()
+              
+              if !flags.contains(name) (
+                void flags.append(name)
+              )
+              
+              elem.elem.needsUpdate = true
+              void elem.elem.checkUpdate()
+            ), self)
+          case "removeFlag"
+            return rtr.value.RTROslFuncValue(def(args, _inst, elem) -> (
+              local flags @= elem.elem.header.flags
+              local name = args[1].stringify()
+              
+              if flags.contains(name) (
+                void flags.delete(flags.index(name))
+              )
+              
+              elem.elem.needsUpdate = true
+              void elem.elem.checkUpdate()
+            ), self)
+          case "hasFlag"
+            return rtr.value.RTROslFuncValue(def(args, _inst, elem) -> (
+              local flags @= elem.elem.header.flags
+              local name = args[1].stringify()
+              
+              return rtr.value.RTRBoolValue(flags.contains(name))
+            ), self)
+          
+          case "addChild"
+            return rtr.value.RTROslFuncValue(def(args, _inst, elem) -> (
+              if elem.elem.children == null (
+                throw elem.kind + "cannot contain children"
+              )
+              if !args[1].isRwlElem (
+                throw "argument is not rwl element"
+              )
+              void elem.elem.children.append(args[1].elem)
+              
+              void elem.elem.updateParentFromCache()
+            ), self)
+          case "popChild"
+            return rtr.value.RTROslFuncValue(def(args, _inst, elem) -> (
+              if elem.elem.children == null (
+                throw elem.kind + "doesnt contain children"
+              )
+              local idx = args.len > 0 ? args[1].numbify() 1
+              local out @= elem.elem.children[idx]
+              if out != null (
+                out @= rtr.apis.rwl.RTRElement(out)
+              ) else (
+                out @= rtr.value.RTRNullValue()
+              )
+              void elem.elem.children.delete(idx)
+              
+              void elem.elem.updateParentFromCache()
+              return out
+            ), self)
+        )
+        
+        for i self.elem.header.pairs.len (
+          local pair @= self.elem.header.pairs[i]
+          if pair[1] == k (
+            return rtr.apis.rwl.rwlValueToRtrValue(pair[2])
+          )
+        )
+        return rtr.value.RTRNullValue()
+      )
+      
+      def setItem(key, value) (
+        local k = key.stringify()
+        local v @= rtr.apis.rwl.rtrValueToRwlValue(value)
+        
+        if k == "text" and self.elem.name == "RWLElement" (
+          self.elem.value @= v
+          void self.elem.updateFromCache()
+          return
+        )
+        
+        for i self.elem.header.pairs.len (
+          local pair @= self.elem.header.pairs[i]
+          if pair[1] == k (
+            pair[2] @= v
+            void self.elem.updateParentFromCache()
+            return
+          )
+        )
+        
+        void self.elem.header.pairs.append([
+          k, v
+        ])
+        
+        void self.elem.updateParentFromCache()
+      )
+    )
+    
+    def rwlValueToRtrValue(object val) (
+      switch val.type (
+        case "str"
+          return rtr.value.RTRStrValue(val.value)
+        case "num"
+          return rtr.value.RTRNumValue(val.value)
+        // percentage
+        // color
+      )
+      
+      return rtr.value.RTRNullValue()
+    )
+    
+    def rtrValueToRwlValue(object val) (
+      local type @= val.getRtrType()
+      
+      switch type.data.name (
+        case "str"
+          return rwl.value.RWLStrValue(val.value)
+        case "num"
+          return rwl.value.RWLNumValue(val.value)
+        case "color"
+          return rwl.value.RWLColorValue(val.value)
+      )
+      
+      throw "cannot set" + type.stringify() + "as rwl property"
+    )
+    
+    // applies rwl related apis to rtr
+    def addToMod(object doc, object mod) (
+      void mod.declScopeVar("document", RTRDocument(doc))
+      void mod.declScopeVar("theme", rtr.value.RTRObjValue({
+        back: rtr.value.RTRColorValue(shared.theme.back),
+        prim: rtr.value.RTRColorValue(shared.theme.prim),
+        seco: rtr.value.RTRColorValue(shared.theme.seco),
+        tert: rtr.value.RTRColorValue(shared.theme.tert),
+        text: rtr.value.RTRColorValue(shared.theme.text),
+        accent: rtr.value.RTRColorValue(shared.theme.accent),
+      }))
+    )
+  )
+  return __imports__da08879ce20a927bf625b809217d8644
+case "./src/rtr/apis/main.osl"
+  class __imports__60f47f43e26f20419434c17601b19cbc (
+    // applies apis to rtr
+    def addToInst(object doc, object rtrInst) (
+      local mods @= rtrInst.modules.getValues()
+      for i mods.len (
+        addToMod(doc, mods[i])
+      )
+    )
+    
+    def addToMod(object doc, object mod) (
+      void rtr.apis.rwl.addToMod(doc, mod)
+      void rtr.apis.browser.addToMod(doc, mod)
+    )
+  )
+  return __imports__60f47f43e26f20419434c17601b19cbc
 case "./src/rtr/instruction.osl"
   class __imports__63f619ecaeba64e54adfad70c460fe06 (
     // program flow
@@ -3030,7 +3417,7 @@ case "./src/rtr/ast.osl"
       
       def parse() (
         self.pointer = 1
-        
+        log self
         local out @= self.blockContent(true)
         
         if !self.atEnd() (
@@ -3168,6 +3555,7 @@ case "./src/rtr/ast.osl"
           if self.peek() == ":" (
             void self.consume()
             void self.expect("=")
+            void self.consumeWhitespace()
             local expr @= self.expression()
             void self.expect(";")
             return {
@@ -3809,7 +4197,7 @@ case "./src/rtr/ast.osl"
           return self.num()
         )
         
-        if self.peek().match("/^[a-zA-Z_]\\w*$/") != null (
+        if self.peek().match("/^[a-zA-Z_\\$][\\w\\s\\$]*$/") != null (
           local start @= self.getPos()
           return {
             kind: "var",
@@ -3823,6 +4211,7 @@ case "./src/rtr/ast.osl"
       
       def arr() (
         void self.expect("[")
+        void self.consumeWhitespace()
         
         local elems @= []
         
@@ -4118,6 +4507,16 @@ case "./src/rtr/main.osl"
           return rtr.value.RTRNumValue(args[1].stringify().ord())
         ))
         
+        cFunc("toUpper", def(args) -> (
+          return rtr.value.RTRStrValue(args[1].stringify().toUpper())
+        ))
+        cFunc("toLower", def(args) -> (
+          return rtr.value.RTRStrValue(args[1].stringify().toLower())
+        ))
+        cFunc("toTitle", def(args) -> (
+          return rtr.value.RTRStrValue(args[1].stringify().toTitle())
+        ))
+        
         // array
         cFunc("item", def(args) -> (
           return args[1].getItem(args[2])
@@ -4253,6 +4652,7 @@ case "./src/rtr/main.osl"
       )
       def runBlock(object block) (
         if shared.config.browser.phosphorus.useCompiler and block.compile == null (
+          local start = performance
           local compileOut @= rtr.compiler.compileBlock(block)
           if typeof(compileOut) != "array" and compileOut.isError (
             block.compile = false
@@ -4264,7 +4664,8 @@ case "./src/rtr/main.osl"
             body: compileOut,
             start: block.start,
             end: block.end,
-            ast: block
+            ast: block,
+            time: start - performance
           })
         )
         if block.compile != null (
@@ -4560,6 +4961,7 @@ case "./src/rtr/main.osl"
               if self.returnVal != null (
                 local out @= self.returnVal
                 self.returnVal = null
+                return out
               )
               void self.stack.append(out)
               break
@@ -4855,6 +5257,7 @@ case "./src/rwl/ast.osl"
             void statements.append(out)
           )
           void self.consumeWhitespace()
+          log self.atEnd()
           if self.peek() == "}" or self.atEnd() (
             end = true
           ) else (
@@ -5058,6 +5461,7 @@ case "./src/rwl/ast.osl"
       
       // values
       def value() (
+        log self.peek()
         if ["'","\"","`"].contains(self.peek()) (
           return self.str()
         )
@@ -5080,7 +5484,7 @@ case "./src/rwl/ast.osl"
         local q @= self.expects(["'","\"","`"])
         local content = ""
         local end = false
-        while (!end) (
+        while !end (
           local tkn @= self.peek()
           if tkn == "\\" (
             void self.consume()
@@ -5575,7 +5979,7 @@ case "./src/rwl/main.osl"
         
         local rounding @= allRounding.value ?? 0
         
-        local corners @= ["tl","tr","bl","br"]
+        local corners @= ["bl","br","tl","tr"]
         for i corners.len (
           local corner @= self.expectOnHeader("rounding_" ++ corners[i], "num")
           if corner != null (
@@ -5887,7 +6291,7 @@ case "./src/rwl/main.osl"
           )
           
           local anchorX = rwl.area.centerX(containerArea)
-          local anchorY = rwl.area.centerY(containerArea) + (height / 2 + margin[4])
+          local anchorY = rwl.area.centerY(containerArea) + (height / 2)
           local anchorXType = "c"
           local anchorYType = "c"
           
@@ -5912,8 +6316,7 @@ case "./src/rwl/main.osl"
           context.anchorX = anchorXType
           context.anchorY = anchorYType
         )
-        
-        context.y -= height / 2 + margin[4]
+        context.y -= height / (context.anchorY == "b" ? -2 2) + (context.anchorY == "b" ? -margin[2] margin[4])
         
         local area @= [
           containerArea[1] + margin[1],
@@ -5928,7 +6331,7 @@ case "./src/rwl/main.osl"
           context.y + (height / 2) + margin[4]
         ]
         
-        context.y -= height / 2 + margin[2]
+        context.y -= height / (context.anchorY == "b" ? -2 2) + (context.anchorY == "c" ? 0 context.anchorY == "b" ? -margin[4] margin[2])
         
         void self.updateBackground(area)
         
@@ -6002,11 +6405,15 @@ case "./src/rwl/main.osl"
         if col != null (
           void shared.graphics.filledBox(self.area, self.rounding, col)
         )
+        
+        //void shared.graphics.box(self.area, #fff)
       )
       
       def interactUpdate(object context) (
-        if context.topI < self.elemI (
-          if self.isHovered() (
+        if self.isHovered() (
+          // rework to use actual ordering system / order elemI on elem creation
+          //log context.topI self.elemI
+          if context.topI < self.elemI (
             context.top @= self
             context.topI = self.elemI
           )
@@ -6014,7 +6421,7 @@ case "./src/rwl/main.osl"
       )
       
       def topUpdate(object context) (
-        //log "hi" context
+        //log "hi" context shared.input.rwlLeftClick
         if shared.input.rwlLeftClick (
           void context.rtr.runEvents({
             name: "click",
@@ -6110,7 +6517,7 @@ case "./src/rwl/main.osl"
         line_height = spacing["line_height"] ?? 1
         
         // positioning
-        local padding @= self.getPadding()
+        local margin @= self.getMargin()
         
         local anchor @= self.expectOnHeader("anchor", "str")
         if anchor.isError (
@@ -6140,20 +6547,20 @@ case "./src/rwl/main.osl"
           local anchorYType = "c"
           
           if anchor.endsWith("l") or anchor.endsWith("left") (
-            anchorX = area[1] + padding[1]
+            anchorX = area[1] + margin[1]
             anchorXType = "l"
           )
           if anchor.endsWith("r") or anchor.endsWith("right") (
-            anchorX = area[3] - padding[3]
+            anchorX = area[3] - margin[3]
             anchorXType = "r"
           )
           
           if anchor.startsWith("t") or anchor.endsWith("top") (
-            anchorY = area[4] - padding[4]
+            anchorY = area[4]
             anchorYType = "t"
           )
           if anchor.startsWith("b") or anchor.endsWith("bottom") (
-            anchorY = area[2] + padding[2]
+            anchorY = area[2]
             anchorYType = "b"
           )
           
@@ -6215,7 +6622,7 @@ case "./src/rwl/main.osl"
           x += width / -2
         )
         
-        context.y -= height / (context.anchorY == "b" ? -2 2)
+        context.y -= height / (context.anchorY == "b" ? -2 2) + (context.anchorY == "b" ? -margin[2] margin[4])
         
         self.lines @= []
         local y = context.y + (height / 2)
@@ -6233,6 +6640,7 @@ case "./src/rwl/main.osl"
             // account for char spacing
             lx += lineW * -.5
           )
+          log self.lines
           void self.lines.append([lines[lineI], lx, y, size, color])
           y -= size * line_height
         )
@@ -6243,9 +6651,9 @@ case "./src/rwl/main.osl"
           x + (width / 2),
           context.y + (height / 2)
         ]
-        self.padding @= padding
+        self.margin @= margin
         
-        context.y -= height / (context.anchorY == "b" ? -2 2)
+        context.y -= height / (context.anchorY == "b" ? -2 2) + (context.anchorY == "b" ? -margin[4] margin[2])
       )
       
       def render() (
@@ -6267,7 +6675,7 @@ case "./src/rwl/main.osl"
         if self.elemI == devtools.main.hoveredElement (
           void shared.graphics.filledTransparentArea(self.debugArea, #0ff, 20)
           
-          local fullArea = rwl.area.margin(self.debugArea, self.padding)
+          local fullArea = rwl.area.margin(self.debugArea, self.margin)
          
           if fullArea != null (
             // left
@@ -6522,10 +6930,11 @@ case "./src/rwl/main.osl"
           void self.elements[i].interactUpdate(context)
         )
         
+        //log context.top
+        
         if context.top != null (
           void context.top.topUpdate(context)
         )
-        void shared.input.reset()
       )
       
       def checkElemUpdate() (
@@ -6573,293 +6982,14 @@ case "./src/rwl/main.osl"
     )
   )
   return __imports__b471b13f60903428337025313115b852
-case "./src/rtr/apis/rwl.osl"
-  class __imports__da08879ce20a927bf625b809217d8644 (
-    class RTRDocument extends rtr.value.RTRValue (
-      def init(object doc) (
-        self.doc @= doc
-      )
-    
-      def getRtrType() (
-        return rtr.value.RTRTypeValue({
-          name: "document"
-        })
-      )
-      
-      def getItem(key) (
-        switch key.stringify() (
-          // values
-          case "title"
-            return rtr.value.RTRStrValue(self.doc.title)
-          case "icon"
-            if self.doc.icon == null (
-              return rtr.value.RTRNullValue()
-            )
-            return rtr.value.RTRStrValue(self.doc.icon)
-          case "root"
-            local elems @= self.doc.rwlInst.elements
-            for i elems.len (
-              local elem @= elems[i]
-              if elem.name == "RWLRoot" (
-                return rtr.apis.rwl.RTRElement(elem)
-              )
-            )
-            return rtr.value.RTRNullValue()
-          
-          // methods
-          case "redirect"
-            return rtr.value.RTROslFuncValue(def(args, _inst, doc) -> (
-              void doc.doc.loadUrl(shared.url.Url(args[1].stringify()))
-              void layouts.shared.state.updateTab()
-            ), self)
-          case "getElement"
-            return rtr.value.RTROslFuncValue(def(args, _inst, doc) -> (
-              local elem @= doc.doc.rwlInst.getElement(args[1].stringify())
-              if elem == null (
-                return rtr.value.RTRNullValue()
-              )
-              return rtr.apis.rwl.RTRElement(elem)
-            ), self)
-          case "createTextElement"
-            return rtr.value.RTROslFuncValue(def(args, _inst) -> (
-              return rtr.apis.rwl.RTRElement(rwl.main.RWLElement(rtr.apis.rwl.rtrValueToRwlValue(args[1]), { flags: [], pairs: [] }))
-            ))
-          case "createScript"
-            return rtr.value.RTROslFuncValue(def(args, _inst, doc) -> (
-              local elem @= rwl.main.RWLScript(args[1].stringify(), { flags: [], pairs: [] }, doc.doc.rwlInst)
-              void elem.start()
-              return rtr.apis.rwl.RTRElement(elem)
-            ), self)
-          case "createContainer"
-            return rtr.value.RTROslFuncValue(def(args, _inst) -> (
-              local kind = args[1].stringify()
-              switch kind (
-                case "frame"
-                  return rtr.apis.rwl.RTRElement(rwl.main.RWLFrame([], { flags: [], pairs: [] }))
-                case "section"
-                  return rtr.apis.rwl.RTRElement(rwl.main.RWLSection([], { flags: [], pairs: [] }))
-                case "button"
-                  return rtr.apis.rwl.RTRElement(rwl.main.RWLButton([], { flags: [], pairs: [] }))
-                
-                default
-                  throw "unknown container type" + kind
-              )
-              return rtr.apis.rwl.RTRElement(rwl.main.RWLElement(rtr.apis.rwl.rtrValueToRwlValue(args[1]), { flags: [], pairs: [] }))
-            ))
-          
-          default
-            throw "unknown property" + key.stringify() + "on document"
-        )
-      )
-      
-      def setItem(key, value) (
-        switch key.stringify() (
-          case "title"
-            self.doc.title = value.stringify()
-            break
-          case "icon"
-            self.doc.icon = value.stringify()
-            break
-          default
-            throw "cannot set property" + key.stringify() + "on document"
-        )
-      )
-    )
-    
-    class RTRElement extends rtr.value.RTRValue (
-      isRwlElem = true
-      
-      def init(object elem) (
-        self.elem @= elem
-      )
-    
-      def getRtrType() (
-        return rtr.value.RTRTypeValue({
-          name: "element"
-        })
-      )
-      
-      def stringify() (
-        local txt = (self.elem.blockName ?? self.elem.kind).toStr()
-        if self.elem.id != null (
-          txt ++= ":" ++ self.elem.id
-        )
-        return "<" ++ txt ++ ">"
-      )
-      
-      def getItem(key) (
-        local k = key.stringify()
-        
-        switch k (
-          case "toggleFlag"
-            return rtr.value.RTROslFuncValue(def(args, _inst, elem) -> (
-              local flags @= elem.elem.header.flags
-              local name = args[1].stringify()
-              
-              if flags.contains(name) (
-                void flags.delete(flags.index(name))
-              ) else (
-                void flags.append(name)
-              )
-              
-              elem.elem.needsUpdate = true
-              void elem.elem.checkUpdate()
-            ), self)
-          case "addFlag"
-            return rtr.value.RTROslFuncValue(def(args, _inst, elem) -> (
-              local flags @= elem.elem.header.flags
-              local name = args[1].stringify()
-              
-              if !flags.contains(name) (
-                void flags.append(name)
-              )
-              
-              elem.elem.needsUpdate = true
-              void elem.elem.checkUpdate()
-            ), self)
-          case "removeFlag"
-            return rtr.value.RTROslFuncValue(def(args, _inst, elem) -> (
-              local flags @= elem.elem.header.flags
-              local name = args[1].stringify()
-              
-              if flags.contains(name) (
-                void flags.delete(flags.index(name))
-              )
-              
-              elem.elem.needsUpdate = true
-              void elem.elem.checkUpdate()
-            ), self)
-          case "hasFlag"
-            return rtr.value.RTROslFuncValue(def(args, _inst, elem) -> (
-              local flags @= elem.elem.header.flags
-              local name = args[1].stringify()
-              
-              return rtr.value.RTRBoolValue(flags.contains(name))
-            ), self)
-          
-          case "addChild"
-            return rtr.value.RTROslFuncValue(def(args, _inst, elem) -> (
-              if elem.elem.children == null (
-                throw elem.kind + "cannot contain children"
-              )
-              if !args[1].isRwlElem (
-                throw "argument is not rwl element"
-              )
-              void elem.elem.children.append(args[1].elem)
-              
-              void elem.elem.updateParentFromCache()
-            ), self)
-          case "popChild"
-            return rtr.value.RTROslFuncValue(def(args, _inst, elem) -> (
-              if elem.elem.children == null (
-                throw elem.kind + "doesnt contain children"
-              )
-              local idx = args.len > 0 ? args[1].numbify() 1
-              local out @= elem.elem.children[idx]
-              if out != null (
-                out @= rtr.apis.rwl.RTRElement(out)
-              ) else (
-                out @= rtr.value.RTRNullValue()
-              )
-              void elem.elem.children.delete(idx)
-              
-              void elem.elem.updateParentFromCache()
-              return out
-            ), self)
-        )
-        
-        for i self.elem.header.pairs.len (
-          local pair @= self.elem.header.pairs[i]
-          if pair[1] == k (
-            return rtr.apis.rwl.rwlValueToRtrValue(pair[2])
-          )
-        )
-        return rtr.value.RTRNullValue()
-      )
-      
-      def setItem(key, value) (
-        local k = key.stringify()
-        local v @= rtr.apis.rwl.rtrValueToRwlValue(value)
-        for i self.elem.header.pairs.len (
-          local pair @= self.elem.header.pairs[i]
-          if pair[1] == k (
-            pair[2] @= v
-            void self.elem.updateParentFromCache()
-            return
-          )
-        )
-        
-        void self.elem.header.pairs.append([
-          k, v
-        ])
-        
-        void self.elem.updateParentFromCache()
-      )
-    )
-    
-    def rwlValueToRtrValue(object val) (
-      switch val.type (
-        case "str"
-          return rtr.value.RTRStrValue(val.value)
-        case "num"
-          return rtr.value.RTRNumValue(val.value)
-        // percentage
-        // color
-      )
-      
-      return rtr.value.RTRNullValue()
-    )
-    
-    def rtrValueToRwlValue(object val) (
-      local type @= val.getRtrType()
-      
-      switch type.data.name (
-        case "str"
-          return rwl.value.RWLStrValue(val.value)
-        case "num"
-          return rwl.value.RWLNumValue(val.value)
-        case "color"
-          return rwl.value.RWLColorValue(val.value)
-      )
-      
-      throw "cannot set" + type.stringify() + "as rwl property"
-    )
-    
-    // applies all rwl related apis to rtr
-    def addToInst(object doc, object rtrInst) (
-      local mods @= rtrInst.modules.getValues()
-      for i mods.len (
-        addToMod(doc, mods[i])
-      )
-    )
-    
-    def addToMod(object doc, object mod) (
-      void mod.declScopeVar("document", RTRDocument(doc))
-      void mod.declScopeVar("theme", rtr.value.RTRObjValue({
-        back: rtr.value.RTRColorValue(shared.theme.back),
-        prim: rtr.value.RTRColorValue(shared.theme.prim),
-        seco: rtr.value.RTRColorValue(shared.theme.seco),
-        tert: rtr.value.RTRColorValue(shared.theme.tert),
-        text: rtr.value.RTRColorValue(shared.theme.text),
-        accent: rtr.value.RTRColorValue(shared.theme.accent),
-      }))
-    )
-  )
-  return __imports__da08879ce20a927bf625b809217d8644
-case "./src/assets/settings.rwl"
-  return "  root {\n    frame [Horizontal] {\n      section [id=\"sidebar\", size=200] {\n        \n      }\n    },\n    \n    script {\n      pages := {\n        general: [\n          \"hi\"\n        ],\n        privacy: [\n        \n        ]\n      };\n      \n      for (i, pages.keys()) {\n        \n      }\n    }\n  }"
-
-case "./src/assets/empty.rwl"
-  return "  root {\n    \"grahhh\"\n  }"
-
 case "./sidebartest.rwl"
   return "  root {\n    frame [Horizontal, id=\"bleh\"] {\n      section [\n        id=\"sidebar\",\n        size=150, color=theme:prim,\n        rounding_tr=17.5, rounding_br=17.5,\n        padding=10\n      ] {},\n      section {\n      }\n    },\n    \n    script {\n      event(onload) {\n        i := 0;\n        createSidebarButton := (name) ~ {\n          i = i + 1;\n          elem := document.createContainer(\"button\");\n          elem.height = 35;\n          elem.padding = 10;\n          elem.color = theme.seco;\n          elem.hover_color = theme.tert;\n          elem.rounding = 10;\n          elem.id = \"btn\" + i;\n          if (i == 1) {\n            elem.anchor = \"t\";\n          }\n          elem.margin_b = 10;\n          document.getElement(\"sidebar\").addChild(elem);\n          \n          script := document.createScript(\"event(#\" + elem.id + \":click) {\\n  log(\\\"\" + name + \" clicked!\\\");\\n}\\n\");\n          document.root.addChild(script);\n          \n          text := document.createTextElement(name);\n          text.color = theme.text;\n          elem.addChild(text);\n        };\n        \n        btns := [\n          \"hi\",\n          \"wow\",\n          \"blehh\",\n          \"fr\"\n        ];\n        \n        for (btn, btns) {\n          log(btn);\n          createSidebarButton(btn);\n        }\n      }\n    }\n  }"
 
 case "./test.rwl"
-  return "  root [color=theme:prim] {\n    frame [Horizontal] {\n      section [size=100, rounding_tr=20, rounding_br=20] {\n        \"fr\" [color=theme:seco]\n      },\n      section {\n        frame [Vertical] {\n          section [size=50] {\n            \"maybe?\" [color=theme:text, anchor=\"l\", padding=10, size=15]\n          },\n          section [color=theme:back, rounding=20, margin_r=10, margin_b=10, padding=20] {\n            \"blehhh\" [color=theme:text],\n            \"fr\",\n            button [color=theme:prim,padding=5,rounding=5] {\n              \"hi\"\n            },\n            \":P\" [anchor=\"bl\",size=5]\n          }\n        }\n      }\n    },\n    script {\n      event(onload) {\n        log(\"blehh\");\n        \n        document.title = \"gay\";\n        document.icon = \"flag-progress\";\n      }\n    }\n  }"
+  return "  root [color=theme:prim] {\n    frame [Horizontal] {\n      section [size=100, rounding_tr=20, rounding_br=20] {\n        \"fr\" [color=theme:seco]\n      },\n      section {\n        frame [Vertical] {\n          section [size=50] {\n            \"maybe?\" [color=theme:text, anchor=\"l\", margin=10, size=15]\n          },\n          section [color=theme:back, rounding=20, margin_r=10, margin_b=10, padding=20] {\n            \"blehhh\" [color=theme:text],\n            \"fr\",\n            button [color=theme:prim,padding=5,rounding=5] {\n              \"hi\"\n            },\n            \":P\" [anchor=\"bl\",size=5]\n          }\n        }\n      }\n    },\n    script {\n      event(onload) {\n        log(\"blehh\");\n        \n        document.title = \"gay\";\n        document.icon = \"flag-progress\";\n      }\n    }\n  }"
 
 case "./main.rwl"
-  return "  root {\n    script {\n      event(onload) {\n        if (true) {\n          log(\"fr\");\n        }\n        log(true, false);\n      }\n    }\n  }"
+  return "  root {\n    frame [Vertical] {\n      section [size=50%, color=#fff] {\n      \n      }\n    },\n    \"hi\\nwow\"\n  }"
 )
 )
 import as "glass" from "packages"
@@ -6888,7 +7018,12 @@ object rtr @= {
   apis: {}
 }
 
-rtr.apis.rwl @= import("./src/rtr/apis/rwl.osl")
+// make them load after
+rtr.apis @= {
+  main: import("./src/rtr/apis/main.osl"),
+  rwl: import("./src/rtr/apis/rwl.osl"),
+  browser: import("./src/rtr/apis/browser.osl")
+}
 
 object shared @= {
   graphics: import("./src/shared/graphics.osl"),
@@ -6928,18 +7063,26 @@ object net @= {
   response: import("./src/net/response.osl")
 }
 
-object devtools @= {
-  main: import("./src/devtools/main.osl"),
-  topbar: import("./src/devtools/topbar.osl"),
-  rightclick: import("./src/devtools/rightclick.osl"),
-  
-  menus: {
-    elements: import("./src/devtools/menus/elements.osl"),
-    console: import("./src/devtools/menus/console.osl"),
-    network: import("./src/devtools/menus/network.osl"),
-    storage: import("./src/devtools/menus/storage.osl"),
-    compiled: import("./src/devtools/menus/compiled.osl")
+if build.package.phosphorus.hasDevtools ?? true (
+  object devtools @= {
+    main: import("./src/devtools/main.osl"),
+    topbar: import("./src/devtools/topbar.osl"),
+    rightclick: import("./src/devtools/rightclick.osl"),
+    
+    menus: {
+      elements: import("./src/devtools/menus/elements.osl"),
+      console: import("./src/devtools/menus/console.osl"),
+      network: import("./src/devtools/menus/network.osl"),
+      storage: import("./src/devtools/menus/storage.osl"),
+      compiled: import("./src/devtools/menus/compiled.osl")
+    }
   }
+)
+
+object browserPages @= {
+  empty: import("./src/assets/empty.rwl"),
+  home: import("./src/assets/home.rwl"),
+  settings: () -> import("./src/assets/settings.rwl")
 }
 
 void shared.settings.load()
@@ -6947,10 +7090,11 @@ void shared.config.net.refresh()
 
 void layouts.chromeLike.main.init()
 
-// debug tabs
-if true (
+if !build.built (
+  // debug tabs
   local document @= shared.document.Document()
-  void document.loadUrl(shared.url.Url("local://./main.rwl"))
+  void document.loadUrl(shared.url.Url("phos://settings"))
+  //void document.loadUrl(shared.url.Url("local://./main.rwl"))
   void layouts.shared.state.openTabDocument(document)
   
   local document2 @= shared.document.Document()
@@ -6961,7 +7105,9 @@ if true (
   void document3.loadUrl(shared.url.Url("local://./sidebartest.rwl"))
   void layouts.shared.state.openTabDocument(document3)
 ) else (
-  void layouts.shared.state.openEmptyTab()
+  local document3 @= shared.document.Document()
+  void document3.loadUrl(shared.url.Url(shared.config.url.browser_scheme ++ "://home"))
+  void layouts.shared.state.openTabDocument(document3)
 )
 
 void layouts.shared.state.selectTab(1)
@@ -6976,7 +7122,6 @@ if !build.built (
 
 mainloop:
   void layouts[currentLayout].main.update()
-
   //void layouts.chromeLike.main.update()
   //void layouts.summit.main.update()
   

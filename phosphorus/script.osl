@@ -24,7 +24,12 @@ object rtr @= {
   apis: {}
 }
 
-rtr.apis.rwl @= import("./src/rtr/apis/rwl.osl")
+// make them load after
+rtr.apis @= {
+  main: import("./src/rtr/apis/main.osl"),
+  rwl: import("./src/rtr/apis/rwl.osl"),
+  browser: import("./src/rtr/apis/browser.osl")
+}
 
 object shared @= {
   graphics: import("./src/shared/graphics.osl"),
@@ -64,18 +69,26 @@ object net @= {
   response: import("./src/net/response.osl")
 }
 
-object devtools @= {
-  main: import("./src/devtools/main.osl"),
-  topbar: import("./src/devtools/topbar.osl"),
-  rightclick: import("./src/devtools/rightclick.osl"),
-  
-  menus: {
-    elements: import("./src/devtools/menus/elements.osl"),
-    console: import("./src/devtools/menus/console.osl"),
-    network: import("./src/devtools/menus/network.osl"),
-    storage: import("./src/devtools/menus/storage.osl"),
-    compiled: import("./src/devtools/menus/compiled.osl")
+if build.package.phosphorus.hasDevtools ?? true (
+  object devtools @= {
+    main: import("./src/devtools/main.osl"),
+    topbar: import("./src/devtools/topbar.osl"),
+    rightclick: import("./src/devtools/rightclick.osl"),
+    
+    menus: {
+      elements: import("./src/devtools/menus/elements.osl"),
+      console: import("./src/devtools/menus/console.osl"),
+      network: import("./src/devtools/menus/network.osl"),
+      storage: import("./src/devtools/menus/storage.osl"),
+      compiled: import("./src/devtools/menus/compiled.osl")
+    }
   }
+)
+
+object browserPages @= {
+  empty: import("./src/assets/empty.rwl"),
+  home: import("./src/assets/home.rwl"),
+  settings: () -> import("./src/assets/settings.rwl")
 }
 
 void shared.settings.load()
@@ -83,10 +96,11 @@ void shared.config.net.refresh()
 
 void layouts.chromeLike.main.init()
 
-// debug tabs
-if true (
+if !build.built (
+  // debug tabs
   local document @= shared.document.Document()
-  void document.loadUrl(shared.url.Url("local://./main.rwl"))
+  void document.loadUrl(shared.url.Url("phos://settings"))
+  //void document.loadUrl(shared.url.Url("local://./main.rwl"))
   void layouts.shared.state.openTabDocument(document)
   
   local document2 @= shared.document.Document()
@@ -97,7 +111,9 @@ if true (
   void document3.loadUrl(shared.url.Url("local://./sidebartest.rwl"))
   void layouts.shared.state.openTabDocument(document3)
 ) else (
-  void layouts.shared.state.openEmptyTab()
+  local document3 @= shared.document.Document()
+  void document3.loadUrl(shared.url.Url(shared.config.url.browser_scheme ++ "://home"))
+  void layouts.shared.state.openTabDocument(document3)
 )
 
 void layouts.shared.state.selectTab(1)
@@ -112,7 +128,6 @@ if !build.built (
 
 mainloop:
   void layouts[currentLayout].main.update()
-
   //void layouts.chromeLike.main.update()
   //void layouts.summit.main.update()
   

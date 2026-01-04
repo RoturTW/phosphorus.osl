@@ -1,0 +1,13 @@
+
+def addToMod(object doc, object mod) (
+  void mod.declScopeVar("$$brwsr", rtr.value.RTRObjValue({
+    settings: rtr.value.RTRObjValue({
+      getCategories: rtr.value.RTROslFuncValue(def() -> (
+        return rtr.value.RTRArrValue(shared.settings.entries.getKeys().map(c -> rtr.value.RTRStrValue(c)))
+      )),
+      getCategory: rtr.value.RTROslFuncValue(def() -> (
+      
+      ))
+    })
+  }))
+)

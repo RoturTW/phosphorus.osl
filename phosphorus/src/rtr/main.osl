@@ -157,6 +157,16 @@ class Module (
       return rtr.value.RTRNumValue(args[1].stringify().ord())
     ))
     
+    cFunc("toUpper", def(args) -> (
+      return rtr.value.RTRStrValue(args[1].stringify().toUpper())
+    ))
+    cFunc("toLower", def(args) -> (
+      return rtr.value.RTRStrValue(args[1].stringify().toLower())
+    ))
+    cFunc("toTitle", def(args) -> (
+      return rtr.value.RTRStrValue(args[1].stringify().toTitle())
+    ))
+    
     // array
     cFunc("item", def(args) -> (
       return args[1].getItem(args[2])
@@ -276,9 +286,11 @@ class Module (
     local evs @= self.findEligible(target)
     
     void self.initTop()
+    local p @= performance
     for i evs.len (
       void self.runBlock(evs[i].body)
     )
+    log "exec time" performance - p
   )
   def runEventRaw(object target, object data) (
     local ev @= self.findEligible(target)[1]
@@ -288,10 +300,14 @@ class Module (
     )
     
     void self.initTop()
-    return self.runBlock(ev.body)
+    local p @= performance
+    local out @= self.runBlock(ev.body)
+    log "exec time" performance - p
+    return out
   )
   def runBlock(object block) (
     if shared.config.browser.phosphorus.useCompiler and block.compile == null (
+      local start = performance
       local compileOut @= rtr.compiler.compileBlock(block)
       if typeof(compileOut) != "array" and compileOut.isError (
         block.compile = false
@@ -303,7 +319,8 @@ class Module (
         body: compileOut,
         start: block.start,
         end: block.end,
-        ast: block
+        ast: block,
+        time: performance - start
       })
     )
     if block.compile != null (
@@ -599,6 +616,7 @@ class Module (
           if self.returnVal != null (
             local out @= self.returnVal
             self.returnVal = null
+            return out
           )
           void self.stack.append(out)
           break

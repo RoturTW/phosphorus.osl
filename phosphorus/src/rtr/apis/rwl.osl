@@ -51,6 +51,7 @@ class RTRDocument extends rtr.value.RTRValue (
       case "createScript"
         return rtr.value.RTROslFuncValue(def(args, _inst, doc) -> (
           local elem @= rwl.main.RWLScript(args[1].stringify(), { flags: [], pairs: [] }, doc.doc.rwlInst)
+          void rtr.apis.main.addToMod(doc.doc, elem.mod)
           void elem.start()
           return rtr.apis.rwl.RTRElement(elem)
         ), self)
@@ -204,6 +205,13 @@ class RTRElement extends rtr.value.RTRValue (
   def setItem(key, value) (
     local k = key.stringify()
     local v @= rtr.apis.rwl.rtrValueToRwlValue(value)
+    
+    if k == "text" and self.elem.name == "RWLElement" (
+      self.elem.value @= v
+      void self.elem.updateFromCache()
+      return
+    )
+    
     for i self.elem.header.pairs.len (
       local pair @= self.elem.header.pairs[i]
       if pair[1] == k (
@@ -249,14 +257,7 @@ def rtrValueToRwlValue(object val) (
   throw "cannot set" + type.stringify() + "as rwl property"
 )
 
-// applies all rwl related apis to rtr
-def addToInst(object doc, object rtrInst) (
-  local mods @= rtrInst.modules.getValues()
-  for i mods.len (
-    addToMod(doc, mods[i])
-  )
-)
-
+// applies rwl related apis to rtr
 def addToMod(object doc, object mod) (
   void mod.declScopeVar("document", RTRDocument(doc))
   void mod.declScopeVar("theme", rtr.value.RTRObjValue({

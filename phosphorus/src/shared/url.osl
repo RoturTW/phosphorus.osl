@@ -48,6 +48,10 @@ class Url (
     self.path = match[13]
     self.params @= {}
     self.resource = match[10] ?? "index.rwl"
+    
+    if self.scheme == shared.config.url.browser_scheme (
+      self.domain_top = null
+    )
   )
   
   def format() (

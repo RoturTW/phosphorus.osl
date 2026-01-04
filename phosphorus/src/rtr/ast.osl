@@ -7,7 +7,6 @@ class Parser (
   
   def parse() (
     self.pointer = 1
-    
     local out @= self.blockContent(true)
     
     if !self.atEnd() (
@@ -105,7 +104,7 @@ class Parser (
   // statements
   def blockContent(top) (
     local statements @= []
-    local end = peek() == "}" or self.atEnd()
+    local end = self.peek() == "}" or self.atEnd()
     while !end (
       if top (
         local out @= self.topLevelStatement()
@@ -145,6 +144,7 @@ class Parser (
       if self.peek() == ":" (
         void self.consume()
         void self.expect("=")
+        void self.consumeWhitespace()
         local expr @= self.expression()
         void self.expect(";")
         return {
@@ -786,7 +786,7 @@ class Parser (
       return self.num()
     )
     
-    if self.peek().match("/^[a-zA-Z_]\\w*$/") != null (
+    if self.peek().match("/^[a-zA-Z_\\$][\\w\\s\\$]*$/") != null (
       local start @= self.getPos()
       return {
         kind: "var",
@@ -800,6 +800,7 @@ class Parser (
   
   def arr() (
     void self.expect("[")
+    void self.consumeWhitespace()
     
     local elems @= []
     

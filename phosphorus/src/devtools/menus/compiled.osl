@@ -1,4 +1,5 @@
 
+number offsetX = 0
 boolean exit = false
 selectedCode = null
 
@@ -104,6 +105,12 @@ def topbar() (
 )
 
 def update() (
+  if !shared.config.browser.phosphorus.useCompiler (
+    goto 0 0
+    centext "compiler disabled" 10 : c#shared.theme.prim
+    return
+  )
+  
   local inst @= self.getInst()
   
   if self.selectedCode == null (
@@ -141,6 +148,7 @@ def update() (
   ) else (
     self.y = frame.top + frame.scroll
     local start = self.y
+    self.offsetX = 0
     drawInstructions(self.selectedCode.body, frame.left + 15)
     self.height = start - self.y - 10
   )
@@ -176,8 +184,13 @@ def drawInstruction(object instruction, number x, array instructions, number i) 
   
   self.y -= height / 2
   instruction.editorY = self.y
+  
+  if instruction.kind == "popScope" (
+    self.offsetX -= 10
+  )
+  
   if !(self.y - height > frame.top or self.y < frame.bottom) (
-    local fromleft = x - frame.left
+    local fromleft = x + self.offsetX - frame.left
     goto fromleft / 2 self.y
     square frame.width - fromleft height 0 0 1
     if mouse_touching (
@@ -189,7 +202,7 @@ def drawInstruction(object instruction, number x, array instructions, number i) 
         // "arrow" | "point"
         local look = "arrow"
         c shared.theme.tert
-        goto x self.y
+        goto x + self.offsetX self.y
         if look == "point" (
           pen "size" 7.5
           pen "down"
@@ -197,9 +210,9 @@ def drawInstruction(object instruction, number x, array instructions, number i) 
         )
         pen "size" 2.5
         pen "down"
-        goto x - 7.5 self.y
-        goto x - 7.5 corresponding.editorY
-        goto x corresponding.editorY
+        goto x + self.offsetX - 7.5 self.y
+        goto x + self.offsetX - 7.5 corresponding.editorY
+        goto x + self.offsetX corresponding.editorY
         pen "up"
         if look == "point" (
           pen "size" 7.5
@@ -217,7 +230,7 @@ def drawInstruction(object instruction, number x, array instructions, number i) 
       )
     )
     
-    goto x + 5 self.y
+    goto x + 5 + self.offsetX self.y
     
     c shared.theme.text
     local categories @= self.highlighting.getValues()
@@ -236,6 +249,10 @@ def drawInstruction(object instruction, number x, array instructions, number i) 
   
   if instruction.kind == "func" (
     drawInstructions(instruction.body, x + 20)
+  )
+  
+  if instruction.kind == "newScope" (
+    self.offsetX += 10
   )
 )
 

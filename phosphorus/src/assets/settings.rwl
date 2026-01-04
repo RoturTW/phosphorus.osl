@@ -1,22 +1,66 @@
 root {
-  frame [Horizontal] {
-    section [id="sidebar", size=200] {
+  frame [Horizontal, color=theme:prim] {
+    section [id="sidebar", size=150] {
       
+    },
+    section {
+      frame [Vertical] {
+        section [size=40, padding=10] {
+          "loading..." [
+            id="location",
+            color=theme:text,
+            size=12, anchor="l"
+          ]
+        },
+        section [color=theme:back, rounding_tl=10] {
+          
+        }
+      }
     }
   },
   
   script {
-    pages := {
-      general: [
-        "hi"
-      ],
-      privacy: [
+    event(onload) {
+      setLocation := (text) ~ {
+        document.getElement("location").text = text;
+      };
+      setLocation("bleh");
       
-      ]
-    };
-    
-    for (i, pages.keys()) {
+      sidebar := document.getElement("sidebar");
       
+      categories := $$brwsr.settings.getCategories();
+      i := 0;
+      for (category, categories) {
+        i += 1;
+        buttonElem := document.createContainer("button");
+        
+        buttonElem.margin = 7.5;
+        if (i == 1) {
+          buttonElem.anchor = "tl";
+          buttonElem.margin_t = 10;
+        } else {
+          buttonElem.margin_t = 0;
+        }
+        buttonElem.height = 35;
+        buttonElem.rounding = 10;
+        buttonElem.hover_color = theme.seco;
+        buttonElem.id = "cat_" + category;
+        
+        titleElem := document.createTextElement(toTitle(category));
+        titleElem.color = theme.text;
+        titleElem.size = 11;
+        
+        buttonElem.addChild(titleElem);
+        script := document.createScript(join(
+          "setLocation := (text) ~ {document.getElement(\"location\").text = text;};\n",
+          "event(#" + buttonElem.id + ":click) {\n",
+          "  setLocation(\"" + buttonElem.id + "\");\n",
+          "}\n"
+        ));
+        buttonElem.addChild(script);
+        
+        sidebar.addChild(buttonElem);
+      }
     }
   }
 }

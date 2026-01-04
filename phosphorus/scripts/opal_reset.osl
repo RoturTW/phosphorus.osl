@@ -2,7 +2,6 @@ file "goto_dir" terminal.pwd
 
 local data @= open(terminal.pwd ++ "/opal.json").JsonParse()
 
-data.phosphorus.layout = "summit"
-data.name = "summit"
+data.name = "phosphorus"
 
 file "set_file" "opal.json" data.JsonFormat()

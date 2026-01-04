@@ -25,7 +25,9 @@ def render(array area) (
     void layouts.shared.state.currentDocument.render(contentArea)
   )
   
-  void devtools.main.alwaysUpdate()
+  if devtools.main != null (
+    void devtools.main.alwaysUpdate()
+  )
   if devtools.main.open (
     void devtools.main.update(devtoolsArea, area)
   )

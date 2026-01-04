@@ -112,7 +112,7 @@ def update() (
       local parser @= rtr.ast.Parser("event(onload){return(" ++ promiseData ++ ");}")
       self.ast @= parser.parse()
       self.mod @= rtr.main.Module(self.ast)
-      void rtr.rwl.addToMod(layouts.shared.state.currentDocument, self.mod)
+      void rtr.apis.main.addToMod(layouts.shared.state.currentDocument, self.mod)
       void promiseData2.addModule(self.mod)
       local ret @= mod.runEventRaw({
         name: "onload"

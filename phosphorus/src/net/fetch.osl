@@ -12,6 +12,20 @@ def url(object url) (
     r.f @= f
     return r
   )
+  if url.scheme == shared.config.url.browser_scheme (
+    local r @= net.response.ValidResponse(url)
+    local page @= browserPages[url.domain_name]
+    if typeof(page) == "string" (
+      r.fetch @= def() -> (
+        self.content = self.data
+        self.isFinished = true
+      )
+      r.data @= page
+    ) else (
+      r.fetch @= page ?? (() -> ())
+    )
+    return r
+  )
 
   local servers @= shared.config.net.servers
   local server @= servers[url.scheme]

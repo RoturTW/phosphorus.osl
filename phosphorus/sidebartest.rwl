@@ -22,9 +22,8 @@ root {
         elem.hover_color = theme.tert;
         elem.rounding = 10;
         elem.id = "btn" + i;
-        if (i == 1) {
+        if (i == 1)
           elem.anchor = "t";
-        }
         elem.margin_b = 10;
         document.getElement("sidebar").addChild(elem);
         

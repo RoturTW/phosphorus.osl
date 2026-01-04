@@ -5,7 +5,7 @@ tabs_width = 0
 def update() (
   square frame.width frame.height 0 0 1
   if mouse_touching (
-    self.tabs_scroll += scroll.x.velocity + (scroll.y.velocity * -1.5) * scroll.multiplier
+    self.tabs_scroll += scroll.x.velocity + scroll.y.velocity * -1.5 * scroll.multiplier
   )
   
   self.tabs_scroll = min(self.tabs_scroll, self.tabs_width - frame.width)

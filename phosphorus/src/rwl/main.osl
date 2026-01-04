@@ -184,7 +184,7 @@ class RWLContainer extends RWLNode (
     
     local rounding @= allRounding.value ?? 0
     
-    local corners @= ["tl","tr","bl","br"]
+    local corners @= ["bl","br","tl","tr"]
     for i corners.len (
       local corner @= self.expectOnHeader("rounding_" ++ corners[i], "num")
       if corner != null (
@@ -496,7 +496,7 @@ class RWLPositionedContainer extends RWLContainer (
       )
       
       local anchorX = rwl.area.centerX(containerArea)
-      local anchorY = rwl.area.centerY(containerArea) + (height / 2 + margin[4])
+      local anchorY = rwl.area.centerY(containerArea) + (height / 2)
       local anchorXType = "c"
       local anchorYType = "c"
       
@@ -521,8 +521,7 @@ class RWLPositionedContainer extends RWLContainer (
       context.anchorX = anchorXType
       context.anchorY = anchorYType
     )
-    
-    context.y -= height / 2 + margin[4]
+    context.y -= height / (context.anchorY == "b" ? -2 2) + (context.anchorY == "b" ? -margin[2] margin[4])
     
     local area @= [
       containerArea[1] + margin[1],
@@ -537,7 +536,7 @@ class RWLPositionedContainer extends RWLContainer (
       context.y + (height / 2) + margin[4]
     ]
     
-    context.y -= height / 2 + margin[2]
+    context.y -= height / (context.anchorY == "b" ? -2 2) + (context.anchorY == "c" ? 0 context.anchorY == "b" ? -margin[4] margin[2])
     
     void self.updateBackground(area)
     
@@ -611,11 +610,15 @@ class RWLButton extends RWLPositionedContainer (
     if col != null (
       void shared.graphics.filledBox(self.area, self.rounding, col)
     )
+    
+    //void shared.graphics.box(self.area, #fff)
   )
   
   def interactUpdate(object context) (
-    if context.topI < self.elemI (
-      if self.isHovered() (
+    if self.isHovered() (
+      // rework to use actual ordering system / order elemI on elem creation
+      //log context.topI self.elemI
+      if context.topI < self.elemI (
         context.top @= self
         context.topI = self.elemI
       )
@@ -623,7 +626,7 @@ class RWLButton extends RWLPositionedContainer (
   )
   
   def topUpdate(object context) (
-    //log "hi" context
+    //log "hi" context shared.input.rwlLeftClick
     if shared.input.rwlLeftClick (
       void context.rtr.runEvents({
         name: "click",
@@ -719,7 +722,7 @@ class RWLElement extends RWLNode (
     line_height = spacing["line_height"] ?? 1
     
     // positioning
-    local padding @= self.getPadding()
+    local margin @= self.getMargin()
     
     local anchor @= self.expectOnHeader("anchor", "str")
     if anchor.isError (
@@ -749,20 +752,20 @@ class RWLElement extends RWLNode (
       local anchorYType = "c"
       
       if anchor.endsWith("l") or anchor.endsWith("left") (
-        anchorX = area[1] + padding[1]
+        anchorX = area[1] + margin[1]
         anchorXType = "l"
       )
       if anchor.endsWith("r") or anchor.endsWith("right") (
-        anchorX = area[3] - padding[3]
+        anchorX = area[3] - margin[3]
         anchorXType = "r"
       )
       
       if anchor.startsWith("t") or anchor.endsWith("top") (
-        anchorY = area[4] - padding[4]
+        anchorY = area[4]
         anchorYType = "t"
       )
       if anchor.startsWith("b") or anchor.endsWith("bottom") (
-        anchorY = area[2] + padding[2]
+        anchorY = area[2]
         anchorYType = "b"
       )
       
@@ -809,10 +812,10 @@ class RWLElement extends RWLNode (
     )
     color ??= context.color
     
-    local lines @= text.split("\n")
+    local linesr @= text.split("\n")
     local width = 0
-    for lineI lines.len (
-      width = max(width, lines[lineI].len * size * spacing)
+    for lineI linesr.len (
+      width = max(width, linesr[lineI].len * size * spacing)
     )
     local height = lines.len * line_height * 2 * size
     
@@ -824,13 +827,14 @@ class RWLElement extends RWLNode (
       x += width / -2
     )
     
-    context.y -= height / (context.anchorY == "b" ? -2 2)
+    context.y -= height / (context.anchorY == "b" ? -2 2) + (context.anchorY == "b" ? -margin[2] margin[4])
     
     self.lines @= []
+    //log self.lines
     local y = context.y + (height / 2)
-    for lineI lines.len (
+    for lineI linesr.len (
       y -= size * line_height
-      local lineW = shared.graphics.getTextWidth(lines[lineI]) * size
+      local lineW = shared.graphics.getTextWidth(linesr[lineI]) * size
       local lx = x
       if alignment == "l" (
         lx += width / -2
@@ -842,7 +846,9 @@ class RWLElement extends RWLNode (
         // account for char spacing
         lx += lineW * -.5
       )
-      void self.lines.append([lines[lineI], lx, y, size, color])
+      //log self
+      self.lines ??= []
+      void self.lines.append([linesr[lineI], lx, y, size, color])
       y -= size * line_height
     )
     
@@ -852,9 +858,9 @@ class RWLElement extends RWLNode (
       x + (width / 2),
       context.y + (height / 2)
     ]
-    self.padding @= padding
+    self.margin @= margin
     
-    context.y -= height / (context.anchorY == "b" ? -2 2)
+    context.y -= height / (context.anchorY == "b" ? -2 2) + (context.anchorY == "b" ? -margin[4] margin[2])
   )
   
   def render() (
@@ -876,7 +882,7 @@ class RWLElement extends RWLNode (
     if self.elemI == devtools.main.hoveredElement (
       void shared.graphics.filledTransparentArea(self.debugArea, #0ff, 20)
       
-      local fullArea = rwl.area.margin(self.debugArea, self.padding)
+      local fullArea = rwl.area.margin(self.debugArea, self.margin)
      
       if fullArea != null (
         // left
@@ -1131,10 +1137,11 @@ class RWL (
       void self.elements[i].interactUpdate(context)
     )
     
+    //log context.top
+    
     if context.top != null (
       void context.top.topUpdate(context)
     )
-    void shared.input.reset()
   )
   
   def checkElemUpdate() (

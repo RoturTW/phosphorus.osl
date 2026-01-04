@@ -1,4 +1,4 @@
-build @= { built: true, package: {"name":"summit","version":"1.0.0a","description":"rotur web engine","main":"script.osl","dependencies":{},"tags":[],"include":["./main.rwl","./test.rwl","./sidebartest.rwl"],"phosphorus":{"layout":"chromeLike","hasDevtools":true},"scripts":{"opaljson-summit":"osl ./scripts/opal_summit.osl","opaljson-chromeLike":"osl ./scripts/opal_chromeLike.osl","opaljson-reset":"osl ./scripts/opal_reset.osl","build-summit":["fpp script opaljson-summit","fpp build","rm build/script-summit.osl","mv build/script.osl build/script-summit.osl","echo \"summit build complete!\""],"build-chromeLike":["fpp script opaljson-chromeLike","fpp build","rm build/script-chromeLike.osl","mv build/script.osl build/script-chromeLike.osl","echo \"chromeLike build complete!\""],"build":["fpp script build-summit","fpp script build-chromeLike","fpp script opaljson-reset"]}} }
+build @= { built: true, package: {"name":"phosphorus","version":"1.0.0a","description":"rotur web engine","main":"script.osl","dependencies":{},"tags":[],"include":["./main.rwl","./test.rwl","./sidebartest.rwl"],"phosphorus":{"layout":"chromeLike","hasDevtools":true},"scripts":{"opaljson-summit":"osl ./scripts/opal_summit.osl","opaljson-chromeLike":"osl ./scripts/opal_chromeLike.osl","opaljson-reset":"osl ./scripts/opal_reset.osl","build-summit":["fpp script opaljson-summit","fpp build","rm build/script-summit.osl","mv build/script.osl build/script-summit.osl","echo \"summit build complete!\""],"build-chromeLike":["fpp script opaljson-chromeLike","fpp build","rm build/script-chromeLike.osl","mv build/script.osl build/script-chromeLike.osl","echo \"chromeLike build complete!\""],"build":["fpp script build-summit","fpp script build-chromeLike","fpp script opaljson-reset"]}} }
 opal_imports = {}
 def import(path) (
   switch path (
@@ -3417,7 +3417,6 @@ case "./src/rtr/ast.osl"
       
       def parse() (
         self.pointer = 1
-        log self
         local out @= self.blockContent(true)
         
         if !self.atEnd() (
@@ -3515,7 +3514,7 @@ case "./src/rtr/ast.osl"
       // statements
       def blockContent(top) (
         local statements @= []
-        local end = peek() == "}" or self.atEnd()
+        local end = self.peek() == "}" or self.atEnd()
         while !end (
           if top (
             local out @= self.topLevelStatement()
@@ -4636,9 +4635,11 @@ case "./src/rtr/main.osl"
         local evs @= self.findEligible(target)
         
         void self.initTop()
+        local p @= performance
         for i evs.len (
           void self.runBlock(evs[i].body)
         )
+        log "exec time" performance - p
       )
       def runEventRaw(object target, object data) (
         local ev @= self.findEligible(target)[1]
@@ -4648,7 +4649,10 @@ case "./src/rtr/main.osl"
         )
         
         void self.initTop()
-        return self.runBlock(ev.body)
+        local p @= performance
+        local out @= self.runBlock(ev.body)
+        log "exec time" performance - p
+        return out
       )
       def runBlock(object block) (
         if shared.config.browser.phosphorus.useCompiler and block.compile == null (
@@ -4665,7 +4669,7 @@ case "./src/rtr/main.osl"
             start: block.start,
             end: block.end,
             ast: block,
-            time: start - performance
+            time: performance - start
           })
         )
         if block.compile != null (
@@ -5257,7 +5261,6 @@ case "./src/rwl/ast.osl"
             void statements.append(out)
           )
           void self.consumeWhitespace()
-          log self.atEnd()
           if self.peek() == "}" or self.atEnd() (
             end = true
           ) else (
@@ -5461,7 +5464,6 @@ case "./src/rwl/ast.osl"
       
       // values
       def value() (
-        log self.peek()
         if ["'","\"","`"].contains(self.peek()) (
           return self.str()
         )
@@ -6607,10 +6609,10 @@ case "./src/rwl/main.osl"
         )
         color ??= context.color
         
-        local lines @= text.split("\n")
+        local linesr @= text.split("\n")
         local width = 0
-        for lineI lines.len (
-          width = max(width, lines[lineI].len * size * spacing)
+        for lineI linesr.len (
+          width = max(width, linesr[lineI].len * size * spacing)
         )
         local height = lines.len * line_height * 2 * size
         
@@ -6625,10 +6627,11 @@ case "./src/rwl/main.osl"
         context.y -= height / (context.anchorY == "b" ? -2 2) + (context.anchorY == "b" ? -margin[2] margin[4])
         
         self.lines @= []
+        //log self.lines
         local y = context.y + (height / 2)
-        for lineI lines.len (
+        for lineI linesr.len (
           y -= size * line_height
-          local lineW = shared.graphics.getTextWidth(lines[lineI]) * size
+          local lineW = shared.graphics.getTextWidth(linesr[lineI]) * size
           local lx = x
           if alignment == "l" (
             lx += width / -2
@@ -6640,8 +6643,9 @@ case "./src/rwl/main.osl"
             // account for char spacing
             lx += lineW * -.5
           )
-          log self.lines
-          void self.lines.append([lines[lineI], lx, y, size, color])
+          //log self
+          self.lines ??= []
+          void self.lines.append([linesr[lineI], lx, y, size, color])
           y -= size * line_height
         )
         
@@ -6983,13 +6987,13 @@ case "./src/rwl/main.osl"
   )
   return __imports__b471b13f60903428337025313115b852
 case "./sidebartest.rwl"
-  return "  root {\n    frame [Horizontal, id=\"bleh\"] {\n      section [\n        id=\"sidebar\",\n        size=150, color=theme:prim,\n        rounding_tr=17.5, rounding_br=17.5,\n        padding=10\n      ] {},\n      section {\n      }\n    },\n    \n    script {\n      event(onload) {\n        i := 0;\n        createSidebarButton := (name) ~ {\n          i = i + 1;\n          elem := document.createContainer(\"button\");\n          elem.height = 35;\n          elem.padding = 10;\n          elem.color = theme.seco;\n          elem.hover_color = theme.tert;\n          elem.rounding = 10;\n          elem.id = \"btn\" + i;\n          if (i == 1) {\n            elem.anchor = \"t\";\n          }\n          elem.margin_b = 10;\n          document.getElement(\"sidebar\").addChild(elem);\n          \n          script := document.createScript(\"event(#\" + elem.id + \":click) {\\n  log(\\\"\" + name + \" clicked!\\\");\\n}\\n\");\n          document.root.addChild(script);\n          \n          text := document.createTextElement(name);\n          text.color = theme.text;\n          elem.addChild(text);\n        };\n        \n        btns := [\n          \"hi\",\n          \"wow\",\n          \"blehh\",\n          \"fr\"\n        ];\n        \n        for (btn, btns) {\n          log(btn);\n          createSidebarButton(btn);\n        }\n      }\n    }\n  }"
+  return "  root {\n    frame [Horizontal, id=\"bleh\"] {\n      section [\n        id=\"sidebar\",\n        size=150, color=theme:prim,\n        rounding_tr=17.5, rounding_br=17.5,\n        padding=10\n      ] {},\n      section {\n      }\n    },\n    \n    script {\n      event(onload) {\n        i := 0;\n        createSidebarButton := (name) ~ {\n          i = i + 1;\n          elem := document.createContainer(\"button\");\n          elem.height = 35;\n          elem.padding = 10;\n          elem.color = theme.seco;\n          elem.hover_color = theme.tert;\n          elem.rounding = 10;\n          elem.id = \"btn\" + i;\n          if (i == 1)\n            elem.anchor = \"t\";\n          elem.margin_b = 10;\n          document.getElement(\"sidebar\").addChild(elem);\n          \n          script := document.createScript(\"event(#\" + elem.id + \":click) {\\n  log(\\\"\" + name + \" clicked!\\\");\\n}\\n\");\n          document.root.addChild(script);\n          \n          text := document.createTextElement(name);\n          text.color = theme.text;\n          elem.addChild(text);\n        };\n        \n        btns := [\n          \"hi\",\n          \"wow\",\n          \"blehh\",\n          \"fr\"\n        ];\n        \n        for (btn, btns) {\n          log(btn);\n          createSidebarButton(btn);\n        }\n      }\n    }\n  }"
 
 case "./test.rwl"
   return "  root [color=theme:prim] {\n    frame [Horizontal] {\n      section [size=100, rounding_tr=20, rounding_br=20] {\n        \"fr\" [color=theme:seco]\n      },\n      section {\n        frame [Vertical] {\n          section [size=50] {\n            \"maybe?\" [color=theme:text, anchor=\"l\", margin=10, size=15]\n          },\n          section [color=theme:back, rounding=20, margin_r=10, margin_b=10, padding=20] {\n            \"blehhh\" [color=theme:text],\n            \"fr\",\n            button [color=theme:prim,padding=5,rounding=5] {\n              \"hi\"\n            },\n            \":P\" [anchor=\"bl\",size=5]\n          }\n        }\n      }\n    },\n    script {\n      event(onload) {\n        log(\"blehh\");\n        \n        document.title = \"gay\";\n        document.icon = \"flag-progress\";\n      }\n    }\n  }"
 
 case "./main.rwl"
-  return "  root {\n    frame [Vertical] {\n      section [size=50%, color=#fff] {\n      \n      }\n    },\n    \"hi\\nwow\"\n  }"
+  return "  root {\n    script {\n      event (onload) {\n        log(\"hi\");\n      }\n    }\n  }"
 )
 )
 import as "glass" from "packages"

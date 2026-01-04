@@ -24,6 +24,8 @@ class net (
 )
 
 class url (
+  string browser_scheme = build.package.phosphorus.browser_scheme ?? "phos"
+  
   class defaults (
     string scheme = "rtr"
     string name = "unknown"
@@ -32,17 +34,17 @@ class url (
 )
 
 class browser (
-  string name = "phosphorus"
-  array developers = ["flufi"]
-  string version = "1.0.0a"
+  string name = build.package.name ?? "phosphorus"
+  array developers = build.package.developers ?? ["flufi"]
+  string version = build.package.version ?? "1.0.0a"
   
   // browserName@developer
-  string save_developer = "rotur"
+  string save_developer = build.package.save_developer ?? "rotur"
   
   class phosphorus (
     string version = "1.0.0a"
     
-    boolean usesCanvas = false
+    boolean useCanvas = false
     boolean useCompiler = true
   )
 )

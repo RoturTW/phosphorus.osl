@@ -1,11 +1,8 @@
 
 root {
   script {
-    event(onload) {
-      if (true) {
-        log("fr");
-      }
-      log(true, false);
+    event (onload) {
+      log("hi");
     }
   }
 }
