@@ -30,6 +30,9 @@ class RTRDocument extends rtr.value.RTRValue (
         )
         return rtr.value.RTRNullValue()
       
+      case "vars"
+        return self.doc.vars
+      
       // methods
       case "redirect"
         return rtr.value.RTROslFuncValue(def(args, _inst, doc) -> (
@@ -47,6 +50,10 @@ class RTRDocument extends rtr.value.RTRValue (
       case "createTextElement"
         return rtr.value.RTROslFuncValue(def(args, _inst) -> (
           return rtr.apis.rwl.RTRElement(rwl.main.RWLElement(rtr.apis.rwl.rtrValueToRwlValue(args[1]), { flags: [], pairs: [] }))
+        ))
+      case "createIconElement"
+        return rtr.value.RTROslFuncValue(def(args, _inst) -> (
+          return rtr.apis.rwl.RTRElement(rwl.main.RWLIcon({ flags: [], pairs: [ ["src", rwl.value.RWLStrValue(args[1].stringify())] ] }))
         ))
       case "createScript"
         return rtr.value.RTROslFuncValue(def(args, _inst, doc) -> (
@@ -167,7 +174,7 @@ class RTRElement extends rtr.value.RTRValue (
           if elem.elem.children == null (
             throw elem.kind + "cannot contain children"
           )
-          if !args[1].isRwlElem (
+          if args[1].isRwlElem != true (
             throw "argument is not rwl element"
           )
           void elem.elem.children.append(args[1].elem)
@@ -212,6 +219,12 @@ class RTRElement extends rtr.value.RTRValue (
       return
     )
     
+    if k == "src" and self.elem.name == "RWLIcon" (
+      self.elem.src @= value.value
+      void self.elem.updateFromCache()
+      return
+    )
+    
     for i self.elem.header.pairs.len (
       local pair @= self.elem.header.pairs[i]
       if pair[1] == k (
@@ -235,8 +248,10 @@ def rwlValueToRtrValue(object val) (
       return rtr.value.RTRStrValue(val.value)
     case "num"
       return rtr.value.RTRNumValue(val.value)
-    // percentage
-    // color
+    case "percentage"
+      return rtr.value.RTRPercentageValue(val.value)
+    case "color"
+      return rtr.value.RTRColorValue(val.value)
   )
   
   return rtr.value.RTRNullValue()
@@ -250,6 +265,8 @@ def rtrValueToRwlValue(object val) (
       return rwl.value.RWLStrValue(val.value)
     case "num"
       return rwl.value.RWLNumValue(val.value)
+    case "percentage"
+      return rwl.value.RWLPercentageValue(val.value)
     case "color"
       return rwl.value.RWLColorValue(val.value)
   )

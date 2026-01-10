@@ -4,7 +4,7 @@ def import(path) (
   switch path (
 
 case "./src/assets/settings.rwl"
-  return "  root {\n    frame [Horizontal, color=theme:prim] {\n      section [id=\"sidebar\", size=150] {\n        \n      },\n      section {\n        frame [Vertical] {\n          section [size=40, padding=10] {\n            \"loading...\" [\n              id=\"location\",\n              color=theme:text,\n              size=12, anchor=\"l\"\n            ]\n          },\n          section [color=theme:back, rounding_tl=10] {\n            \n          }\n        }\n      }\n    },\n    \n    script {\n      event(onload) {\n        setLocation := (text) ~ {\n          document.getElement(\"location\").text = text;\n        };\n        setLocation(\"bleh\");\n        \n        sidebar := document.getElement(\"sidebar\");\n        \n        categories := $$brwsr.settings.getCategories();\n        i := 0;\n        for (category, categories) {\n          i += 1;\n          buttonElem := document.createContainer(\"button\");\n          \n          buttonElem.margin = 7.5;\n          if (i == 1) {\n            buttonElem.anchor = \"tl\";\n            buttonElem.margin_t = 10;\n          } else {\n            buttonElem.margin_t = 0;\n          }\n          buttonElem.height = 35;\n          buttonElem.rounding = 10;\n          buttonElem.hover_color = theme.seco;\n          buttonElem.id = \"cat_\" + category;\n          \n          titleElem := document.createTextElement(toTitle(category));\n          titleElem.color = theme.text;\n          titleElem.size = 11;\n          \n          buttonElem.addChild(titleElem);\n          script := document.createScript(join(\n            \"setLocation := (text) ~ {document.getElement(\\\"location\\\").text = text;};\\n\",\n            \"event(#\" + buttonElem.id + \":click) {\\n\",\n            \"  setLocation(\\\"\" + buttonElem.id + \"\\\");\\n\",\n            \"}\\n\"\n          ));\n          buttonElem.addChild(script);\n          \n          sidebar.addChild(buttonElem);\n        }\n      }\n    }\n  }"
+  return "  root {\n    frame [Horizontal, color=theme:prim] {\n      section [\n        id=\"sidebar\",\n        size=150\n      ] {\n        \n      },\n      section {\n        frame [Vertical] {\n          section [\n            size=40, padding=10\n          ] {\n            \"loading...\" [\n              id=\"location\",\n              color=theme:text,\n              size=12, anchor=\"l\"\n            ]\n          },\n          section [\n            color=theme:back, rounding_tl=10\n          ] {\n            frame [\n              Vertical,\n              id=\"content\"\n            ] {\n              \n            }\n          }\n        }\n      }\n    },\n    \n    script {\n      event(onload) {\n        document.vars.setLocation = (name) ~ {\n          document.getElement(\"location\").text = toTitle(name);\n          document.vars.location = name;\n          call(onPageUpdate);\n        };\n        \n        categories := $$brwsr.settings.getCategories();\n        \n        sidebar := document.getElement(\"sidebar\");\n        \n        document.vars.setLocation(categories[0]);\n        \n        i := 0;\n        for (category, categories) {\n          i += 1;\n          buttonElem := document.createContainer(\"button\");\n          \n          buttonElem.margin = 7.5;\n          if (i == 1) {\n            buttonElem.anchor = \"tl\";\n            buttonElem.margin_t = 10;\n          } else {\n            buttonElem.margin_t = 0;\n          }\n          buttonElem.height = 35;\n          buttonElem.rounding = 10;\n          buttonElem.hover_color = theme.seco;\n          buttonElem.id = \"cat_\" + category;\n          \n          titleElem := document.createTextElement(toTitle(category));\n          titleElem.color = theme.text;\n          titleElem.size = 11;\n          \n          buttonElem.addChild(titleElem);\n          script := document.createScript(join(\n            \"event(#\" + buttonElem.id + \":click) {\\n\",\n            \"  document.vars.setLocation(\\\"\" + category + \"\\\");\\n\",\n            \"}\\n\"\n          ));\n          buttonElem.addChild(script);\n          \n          sidebar.addChild(buttonElem);\n        }\n      }\n      \n      event(onPageUpdate) {\n        i = 0;\n        \n        document.vars.callbacks = {};\n        document.vars.valuefunctions = {};\n        \n        generateProperty := (name, type, value, callback) ~ {\n          parent := document.getElement(\"content\");\n          \n          container := document.createContainer(\"frame\");\n          container.addFlag(\"Horizontal\");\n          container.height = 50;\n          container.padding = 10;\n          parent.addChild(container);\n          \n          nameSection := document.createContainer(\"section\");\n          nameSection.size = 50%;\n          nameSection.padding = 15;\n          \n          nameElem := document.createTextElement(toTitle(name));\n          nameElem.anchor = \"l\";\n          nameElem.color = theme.text;\n          nameSection.addChild(nameElem);\n          \n          container.addChild(nameSection);\n          \n          container.addChild(generateValue(name, type, value, callback));\n        };\n        generateValue := (name, type, value, callback) ~ {\n          container := document.createContainer(\"section\");\n          elem = null;\n          \n          if (type == \"string\") {\n            \n          } elif (type == \"boolean\") {\n            id := \"boolean_\" + (i += 1);\n            \n            elem = document.createContainer(\"frame\");\n            elem.addFlag(\"Horizontal\");\n            elem.addFlag(\"Flipped\");\n            \n            section := document.createContainer(\"section\");\n            section.width = 50;\n            section.padding = 10;\n            \n            button := document.createContainer(\"button\");\n            button.height = 30;\n            button.color = theme.prim;\n            button.hover_color = theme.seco;\n            button.rounding = 10;\n            button.id = id;\n            section.addChild(button);\n            \n            if (value(name)) {\n              icon := document.createIconElement(\"home\");\n              icon.color = theme.text;\n              icon.scale = 0.7;\n              button.addChild(icon);\n            }\n            \n            txt := \"event(#\" + id + \":click) {\\n\";\n            txt += \"  document.vars.callbacks['\" + id + \"'](\\n\";\n            txt += \"    '\" + name + \"',\\n\";\n            txt += \"    '\" + type + \"',\\n\";\n            txt += \"    document.vars.valuefunctions['\" + id + \"']('\" + name + \"')\\n\";\n            txt += \"  );\\n\";\n            txt += \"}\";\n            \n            script := document.createScript(txt);\n            \n            section.addChild(script);\n            \n            elem.addChild(section);\n            \n            document.vars.callbacks[id] = callback;\n            document.vars.valuefunctions[id] = value;\n          } else {\n            elem = document.createTextElement(\"cannot have value of \" + type);\n          }\n          \n          if (elem != null)\n            container.addChild(elem);\n          return(container);\n        };\n        \n        generateSettingPage := () ~ {\n          page := $$brwsr.settings.getPage(document.vars.location);\n          \n          props := page.props;\n          for(prop, props) {\n            generateProperty(prop.name, prop.type, (name) ~ {\n              return($$brwsr.settings.getProperty(document.vars.location, name));\n            }, (name, type, value) ~ {\n              log(\":3\", name, type, value);\n            });\n          }\n        };\n        \n        generateSettingPage();\n      }\n    }\n  }"
 
 case "./src/devtools/menus/compiled.osl"
   class __imports__c2496c7321897b9bfcdc4b07bd6e8f28 (
@@ -27,6 +27,7 @@ case "./src/devtools/menus/compiled.osl"
         color: #ff8119,
         names: [
           "call",
+          "callEv",
           "unary",
           "binary",
           "prop",
@@ -43,6 +44,7 @@ case "./src/devtools/menus/compiled.osl"
           "str",
           "bool",
           "num",
+          "percentage",
           "func",
           "arr",
           "obj",
@@ -278,6 +280,9 @@ case "./src/devtools/menus/compiled.osl"
           drawArgName("args")
           drawNum(instruction.args)
           break
+        case "callEv"
+          drawStr(instruction.name)
+          break
         case "unary"; case "binary"
           drawStr(instruction.op)
           break
@@ -287,6 +292,9 @@ case "./src/devtools/menus/compiled.osl"
           break
         case "num"
           drawNum(instruction.data)
+          break
+        case "percentage"
+          drawPercentage(instruction.data)
           break
         case "bool"
           drawBool(instruction.data)
@@ -342,6 +350,9 @@ case "./src/devtools/menus/compiled.osl"
     )
     def drawNum(number num) (
       text num 9 : c#self.colors.num chx#7.5
+    )
+    def drawPercentage(number num) (
+      text num ++ "%" 9 : c#self.colors.num chx#7.5
     )
     def drawBool(boolean bool) (
       text bool.toStr() 9 : c#self.colors.bool chx#7.5
@@ -586,12 +597,15 @@ case "./src/devtools/menus/elements.osl"
         self.y -= 15
         goto 0 self.y
         
-        c shared.theme.seco
-        pen "opacity" 25 - min(performance - (element.updateTime ?? 0), 25)
-        frame frame.left y + 15 frame.right y - 15 (
-          pen "size" 1000
-          pen "down"
-          pen "up"
+        // looks odd to me, dont know why
+        if false (
+          c shared.theme.seco
+          pen "opacity" 25 - min(performance - (element.updateTime ?? 0), 25)
+          frame frame.left y + 15 frame.right y - 15 (
+            pen "size" 1000
+            pen "down"
+            pen "up"
+          )
         )
         
         element.dvt_open ??= false or true
@@ -629,8 +643,11 @@ case "./src/devtools/menus/elements.osl"
           if element.kind == "script" (
             local content = element.body
             local lines @= content.split("\n")
+            if lines[-1] == "" (
+              void lines.pop()
+            )
             local line_height = 25
-            local height = lines.len - 1 * line_height + 5
+            local height = lines.len * line_height + 5
             
             local cy = self.y - 2.5
             self.y -= height
@@ -671,13 +688,16 @@ case "./src/devtools/menus/elements.osl"
       ) else if element.kind == "element" (
         self.y -= 15
         
-        goto 0 self.y
-        c shared.theme.seco
-        pen "opacity" 25 - min(performance - (element.updateTime ?? 0), 25)
-        frame frame.left y + 15 frame.right y - 15 (
-          pen "size" 1000
-          pen "down"
-          pen "up"
+        // looks odd to me, dont know why
+        if false (
+          goto 0 self.y
+          c shared.theme.seco
+          pen "opacity" 25 - min(performance - (element.updateTime ?? 0), 25)
+          frame frame.left y + 15 frame.right y - 15 (
+            pen "size" 1000
+            pen "down"
+            pen "up"
+          )
         )
         
         goto self.x self.y
@@ -1017,11 +1037,12 @@ case "./src/layouts/summit/topbar.osl"
   return __imports__6a477e7780a631dfc33d414269cd6008
 case "./src/layouts/summit/sidebar.osl"
   class __imports__3dfd082eaa91cc9b8340f13c6baac410 (
-    open_width = 250
+    number width = 250
+    number x = 0
+    number tar_x = 0
     
-    width = 200
-    tar_width = open_width
-    open = true
+    boolean open = true
+    boolean grabbing = false
     
     def update(array area) (
       goto rwl.area.centerX(area) rwl.area.centerY(area)
@@ -1110,8 +1131,18 @@ case "./src/layouts/summit/sidebar.osl"
       )
       self.height = startY - y - 7.5
       
-      // clicking on the left side of the window opens the sidebar
-      if self.width < 25 (
+      if self.open (
+        // resize sidebar
+        goto window.left + self.x + self.width
+        square 20 window.height 0 0 1
+        if mouse_touching (
+          cursor "col-resize"
+          if onclick (
+            self.grabbing = true
+          )
+        )
+      ) else (
+        // clicking on the left side of the window opens the sidebar
         goto window.left 0
         square 20 window.height 0 0 1
         if mouse_touching (
@@ -1122,8 +1153,23 @@ case "./src/layouts/summit/sidebar.osl"
         )
       )
       
-      self.tar_width = self.open ? self.open_width 5
-      self.width += self.tar_width - self.width * min(delta_time, 0.02) * 10
+      if self.grabbing (
+        cursor "col-resize"
+        self.width = mouse_x - window.left + self.x
+        if !mouse_down (
+          self.grabbing = false
+        )
+      )
+      
+      local maxW = window.width - 200
+      if devtools and devtools.main.open (
+        maxW -= 200
+      )
+      self.width = min(self.width, maxW)
+      self.width = max(self.width, 200)
+      
+      self.tar_x = self.open ? 0 -self.width
+      self.x += self.tar_x - self.x * min(delta_time * 3, .02) * 10
     )
   )
   return __imports__3dfd082eaa91cc9b8340f13c6baac410
@@ -1147,25 +1193,25 @@ case "./src/layouts/summit/main.osl"
       
       layouts.shared.state.dragbox[1][3] = max(layouts.summit.sidebar.width, 30)
       
-      void layouts.summit.sidebar.update([
-        window.left + layouts.summit.sidebar.width - layouts.summit.sidebar.open_width,
-        window.bottom,
-        window.left + layouts.summit.sidebar.width,
-        window.top
-      ])
-      
       void layouts.summit.topbar.update([
-        window.left + layouts.summit.sidebar.width,
+        window.left + layouts.summit.sidebar.width + layouts.summit.sidebar.x,
         window.top - 37.5,
         window.right - 5,
         window.top - 5
       ])
       
       void layouts.shared.view.render([
-        window.left + layouts.summit.sidebar.width,
+        window.left + layouts.summit.sidebar.width + layouts.summit.sidebar.x,
         window.bottom + 5,
         window.right - 5,
         window.top - 42.5
+      ])
+      
+      void layouts.summit.sidebar.update([
+        window.left + layouts.summit.sidebar.x,
+        window.bottom,
+        window.left + layouts.summit.sidebar.width + layouts.summit.sidebar.x,
+        window.top
       ])
       
       void layouts.shared.state.applyDragbox()
@@ -1637,659 +1683,6 @@ case "./src/net/fetch.osl"
     )
   )
   return __imports__d974ce5692d372884f5c4f8f8bf1ab18
-case "./src/shared/save.osl"
-  class __imports__adb9c40aa8851930265661f644c37fb1 (
-    def setName(string name) (
-      save name "set_directory"
-    )
-    
-    def exists(string fileName) (
-      return fileName.saveExists()
-    )
-    
-    def get(string fileName) (
-      if !self.exists(fileName) (
-        throw fileName ++ "does not exist"
-      )
-    
-      return fileName.saveGet().toStr()
-    )
-    
-    def set(string fileName, string data) (
-      save fileName "set" data
-    )
-  )
-  return __imports__adb9c40aa8851930265661f644c37fb1
-case "./src/shared/settings.osl"
-  class __imports__b9d870002d9a38c65f33053e346a5da3 (
-    object entries = {
-      devtools: {
-        dockside: {
-          type: "string",
-          desc: "what side devtools is anchored to",
-          default: "r",
-          applySetting: def(string value) -> (
-            devtools.main.anchor = value
-          )
-        },
-        open: {
-          type: "boolean",
-          desc: "if devtools is open or not",
-          default: false,
-          applySetting: def(boolean value) -> (
-            devtools.main.open = value
-          )
-        },
-        menu: {
-          type: "string",
-          desc: "current open devtools menu",
-          default: "console",
-          applySetting: def(string value) -> (
-            devtools.main.menu = value
-          )
-        }
-      },
-      net: {
-        offline: {
-          type: "boolean",
-          desc: "disables networking",
-          default: false
-        }
-      }
-    }
-    
-    object _data = {}
-    
-    def load() (
-      local br @= shared.config.browser
-      void shared.save.setName(br.name ++ "@" ++ br.save_developer)
-      if !shared.save.exists("settings.json") (
-        void self.write()
-      )
-      self._data @= self.deserialize(shared.save.get("settings.json"))
-      void self.applySettings()
-      void self.write()
-    )
-    
-    def write() (
-      void shared.save.set("settings.json", self.serialize())
-    )
-    
-    def get(string category, string entry) (
-      return self._data[category][entry]
-    )
-    def set(string category, string entry, value) (
-      local entryData @= self.entries[category][entry]
-      if entryData == null (
-        throw "setting" + category ++ "/" ++ entry + "doesnt exist"
-      )
-      
-      if entryData.type != typeof(value) (
-        throw "expected" + entry.type + "for" + category ++ "/" ++ entry + "but got" + typeof(value)
-      )
-      self._data[category][entry] @= value
-      void self.write()
-      void self.applySettings()
-    )
-    
-    def applySettings() (
-      local categoryData @= self.entries.getEntries()
-      for categoryI categoryData.len (
-        local category @= categoryData[categoryI]
-        local entryData @= category[2].getEntries()
-        for entryI entryData.len (
-          local entry @= entryData[entryI]
-          local value = self._data[category[1]][entry[1]] ?? entry[2].default
-          if entry[2].applySetting != null (
-            void entry[2].applySetting(value)
-          )
-        )
-      )
-    )
-    
-    def serialize() (
-      local out @= {}
-      local categoryData @= self.entries.getEntries()
-      for categoryI categoryData.len (
-        local category @= categoryData[categoryI]
-        out[category[1]] @= {}
-        local entryData @= category[2].getEntries()
-        for entryI entryData.len (
-          local entry @= entryData[entryI]
-          local value = self._data[category[1]][entry[1]] ?? entry[2].default
-          out[category[1]][entry[1]] @= value
-        )
-      )
-      return out.JsonStringify()
-    )
-    def deserialize(string data) (
-      local raw @= data.JsonParse()
-      
-      local out @= {}
-      local categoryData @= self.entries.getEntries()
-      for categoryI categoryData.len (
-        local category @= categoryData[categoryI]
-        out[category[1]] @= {}
-        local entryData @= category[2].getEntries()
-        for entryI entryData.len (
-          local entry @= entryData[entryI]
-          local value = raw[category[1]][entry[1]] ?? entry[2].default
-          out[category[1]][entry[1]] @= value
-        )
-      )
-      return out
-    )
-  )
-  return __imports__b9d870002d9a38c65f33053e346a5da3
-case "./src/shared/input.osl"
-  class __imports__f477f9b400e164d253c3bfeb6a54c186 (
-    boolean rwlLeftClick = false
-    
-    def reset() (
-      self.rwlLeftClick = false
-    )
-    
-    def update() (
-      self.leftClick = mouse_left and !self.leftDown
-      self.leftDown = mouse_left
-      if self.leftClick (
-        self.rwlLeftClick = true
-      )
-      
-      // TODO: make a keybind system?
-      if "`".onKeyDown() (
-        void shared.settings.set("devtools", "open", !shared.settings.get("devtools", "open"))
-        //devtools.main.open = !devtools.main.open
-      )
-    )
-  )
-  return __imports__f477f9b400e164d253c3bfeb6a54c186
-case "./src/shared/tab_worker.osl"
-  class __imports__ed11349f32bd7389fac05d89b56e016d (
-    def oncreate() (
-      self.ouid = OuidNew()
-    )
-    
-    def onframe() (
-      if self.parseText != null (
-        local parser @= rwl.ast.Parser(self.parseText)
-        if self != null (
-          //log self
-          void self.document.loadAst(parser.parse())
-          self.parseText = null
-        )
-      )
-      if self.document != null and self.document.focused (
-        void self.document.rwlInst.interactUpdate({
-          rtr: self.document.rtrInst
-        })
-        void self.document.rtrUpdate()
-        //void self.document.rwlInst.checkElemUpdate()
-        local mods @= self.document.rtrInst.modules.getValues()
-        for i mods.len (
-          void mods[i].runEventQueue()
-        )
-        void shared.input.reset()
-      )
-    )
-  )
-  return __imports__ed11349f32bd7389fac05d89b56e016d
-case "./src/shared/config.osl"
-  class __imports__9f198a2aa8925b082e5f887a2bba9b67 (
-    class net (
-      servers = {
-        rtr: {
-          url: "https://web.rotur.dev/",
-          
-          // <server>/<command>
-          commands: {
-            tlds: "tlds"
-          }
-        }
-      }
-      
-      def refresh() (
-        if shared.settings.get("net", "offline") (
-          self.servers @= []
-        )
-        
-        for i self.servers.len (
-          local s @= self.servers.getValues()[i]
-          s.tlds @= (s.url ++ s.commands.tlds).httpGet()
-        )
-      )
-    )
-    
-    class url (
-      string browser_scheme = build.package.phosphorus.browser_scheme ?? "phos"
-      
-      class defaults (
-        string scheme = "rtr"
-        string name = "unknown"
-        string top = "web"
-      )
-    )
-    
-    class browser (
-      string name = build.package.name ?? "phosphorus"
-      array developers = build.package.developers ?? ["flufi"]
-      string version = build.package.version ?? "1.0.0a"
-      
-      // browserName@developer
-      string save_developer = build.package.save_developer ?? "rotur"
-      
-      class phosphorus (
-        string version = "1.0.0a"
-        
-        boolean useCanvas = false
-        boolean useCompiler = true
-      )
-    )
-  )
-  return __imports__9f198a2aa8925b082e5f887a2bba9b67
-case "./src/shared/theme.osl"
-  class __imports__5876b7f6fcd5ce7f0fafd1a44ec4bd74 (
-    def load() (
-      self.back = user.theme.background
-      self.prim = user.theme.primary
-      self.seco = user.theme.secondary
-      self.tert = user.theme.tertiary
-      self.text = user.theme.text
-      self.accent = global_accent
-    )
-    
-    load()
-  )
-  return __imports__5876b7f6fcd5ce7f0fafd1a44ec4bd74
-case "./src/shared/url.osl"
-  class __imports__a1d00c2cd890aa6e92598446ff24f924 (
-    class Url (
-      def init(string text) (
-        void self.parse(text)
-      )
-      
-      def parse(string text) (
-        self.text = text
-        local s @= text.match("/^((\\w+):\\/\\/)/")
-        local match @= text.match("/^((\\w+):\\/\\/)?(((\\w+)\\.)?(\\w+)(\\.(\\w+))?\\/?(([\\/w]+)?(\\/(\\w+\\.\\w+))?))\\/?/")
-        
-        self.scheme = match[3] ?? s[3] ?? shared.config.url.defaults.scheme
-        
-        if self.scheme == "local" (
-          self.domain_name = text.trim("local://".len + 1, -1)
-          local usrPath = "origin/(c) users/" ++ username
-          if self.domain_name.toLower().startsWith(usrPath.toLower()) (
-            self.domain_name = "~" ++ self.domain_name.trim(usrPath.len + 1, -1)
-          )
-          self.domain_top = null
-          self.domain_sub = null
-          self.path = null
-          self.params @= {}
-          self.resource = null
-          self.text = "local://" ++ self.domain_name
-          return
-        )
-        
-        if match[9] != null (
-          local domain_name = match[7]
-          local domain_top = match[9]
-          local domain_sub = match[6]
-        ) else (
-          if match[6] != null (
-            local domain_name = match[6]
-            local domain_top = match[7]
-            local domain_sub = null
-          ) else (
-            local domain_name = match[7]
-            local domain_top = null
-            local domain_sub = null
-          )
-        )
-        
-        self.domain_name = domain_name ?? shared.config.url.defaults.name
-        self.domain_top = domain_top ?? shared.config.url.defaults.top
-        self.domain_sub = domain_sub
-        self.path = match[13]
-        self.params @= {}
-        self.resource = match[10] ?? "index.rwl"
-        
-        if self.scheme == shared.config.url.browser_scheme (
-          self.domain_top = null
-        )
-      )
-      
-      def format() (
-        if self.scheme == "local" (
-          return self.text
-        )
-        local sub = self.domain_sub != null ? self.domain_sub ++ "." ""
-        local top = self.domain_top != null ? "." ++ self.domain_top ""
-        local txt = self.scheme ++ "://" ++ sub ++ domain_name ++ top
-        if self.path != null (
-          txt ++= "/" ++ self.path
-        )
-        if self.resource != "index.rwl" (
-          txt ++= "/" ++ self.resource
-        )
-        return txt
-      )
-      
-      def getTitle() (
-        if self.scheme == "local" (
-          return self.domain_name.split("/")[-1].split(".")[1]
-        )
-        return self.domain_name
-      )
-    )
-  )
-  return __imports__a1d00c2cd890aa6e92598446ff24f924
-case "./src/shared/tab.osl"
-  class __imports__0ffc38803b2c8e6e0623c0ea1ffbcc28 (
-    class Tab (
-      def init(object document) (
-        self.document @= document
-      )
-      
-      def redirect(object url) (
-        void self.document.loadUrl(url)
-        void layouts.shared.state.updateTab()
-      )
-    )
-  )
-  return __imports__0ffc38803b2c8e6e0623c0ea1ffbcc28
-case "./src/shared/document.osl"
-  class __imports__af13446f70bd7836009892ffef4b5078 (
-    class Document (
-      def init() (
-        void self.createInsts()
-        
-        self.started = false
-        self.shouldBeAlive = false
-        self.focused = false
-      )
-      
-      def close() (
-        void self.killWorker()
-      )
-      
-      def createWorker() (
-        //log "create worker"
-        void self.killWorker()
-        self.worker @= worker(shared.tab_worker)
-        self.worker.document @= self
-        self.shouldBeAlive = true
-      )
-      
-      def killWorker() (
-        if self.worker != null (
-          //log "kill worker"
-          if self.worker.kill == null (
-            return
-          )
-          void self.worker.kill()
-          self.worker = null
-          self.shouldBeAlive = false
-        )
-      )
-      
-      def createInsts() (
-        self.title = "New Tab"
-        if self.url != null (
-          self.title = self.url.getTitle()
-        )
-        self.icon = null
-        
-        self.rtrInst @= rtr.main.RTR()
-        self.rwlInst @= rwl.main.RWL(shared.document.empty, self.rtrInst)
-      )
-      
-      def updateInsts() (
-        // inject apis
-        void rtr.apis.main.addToInst(self, self.rtrInst)
-      )
-      
-      def update(array area) (
-        void self.rwlInst.update(area)
-      )
-      
-      def rtrUpdate() (
-        if !self.started and self.rwlInst.hasUpdated (
-          void self.rtrInst.startModules()
-          self.started = true
-        )
-      )
-      
-      def render(array area) (
-        if self.worker != null (
-          self.worker.area @= area
-          if !self.worker.alive and self.shouldBeAlive (
-            //void self.createWorker()
-            //self.rwlInst.errored = true
-            //self.rwlInst.errormsg = "tab worker died, check js console"
-          )
-        )
-        
-        goto rwl.area.centerX(area) rwl.area.centerY(area)
-        square rwl.area.width(area) - 10 rwl.area.height(area) - 10 10 : c#shared.theme.back
-        
-        if self.loading (
-          goto rwl.area.centerX(area) rwl.area.centerY(area)
-          direction timer * 720
-          icon "sync" .75 : c#shared.theme.text
-          direction 90
-          return
-        )
-        
-        //log self.rwlInst
-        void self.rwlInst.render(area)
-      )
-      
-      def checkResp() (
-        if self.resp == null (
-          self.loading = false
-          return
-        )
-        
-        if self.resp.isFinished (
-          if self.resp.isValid (
-            self.loading = false
-            
-            void self.createInsts()
-            void self.loadText(self.resp.content)
-            
-            self.resp = null
-          )
-        ) else (
-          self.loading = true
-          void self.resp.update()
-        )
-      )
-      
-      def loadAst(object ast) (
-        void self.createInsts()
-        void self.rwlInst.loadFromAst(ast)
-        void self.updateInsts()
-        self.started = false
-      )
-      
-      def loadText(string text) (
-        void self.createWorker()
-        self.worker.parseText = text
-      )
-      
-      def loadUrl(object url) (
-        self.url @= url
-        void self.createInsts()
-        self.resp @= net.fetch.url(url)
-      )
-      
-      def getIcon() (
-        return self.icon
-      )
-      def getTitle() (
-        return self.title
-      )
-    )
-    
-    def init() (
-      local parser @= rwl.ast.Parser(import("./src/assets/empty.rwl"))
-      self.empty @= parser.parse()
-    )
-  )
-  return __imports__af13446f70bd7836009892ffef4b5078
-case "./src/shared/utils.osl"
-  class __imports__ace3e4fea1b83d3f4a6cf8da09fee544 (
-    def removeIndents(str) (
-      local lines @= str.split("\n")
-      local indent = null
-      for i lines.len (
-        local l2 = lines[i].match("/^( *)(.+)$/")
-        if l2[2].len > 0 (
-          indent = min(indent ?? 9999, l2[2].len)
-        )
-      )
-      for i lines.len (
-        lines[i] = lines[i].trim(indent + 1, -1)
-      )
-      return lines.join("\n")
-    )
-    
-    def jsFunc(string js) (
-      local f @= js.eval()
-      local f2 @= () -> ()
-      f2.code @= f
-      return f2
-    )
-  )
-  return __imports__ace3e4fea1b83d3f4a6cf8da09fee544
-case "./src/shared/graphics.osl"
-  class __imports__8840a5e065c53e817186a2216f863bca (
-    _canvasID = null
-    _canvas = null
-    
-    def init() (
-      if shared.config.browser.phosphorus.useCanvas (
-        self._canvasID = OuidNew()
-        self._canvas @= shared.canvas.createCanvas(self._canvasID, window.width, window.height)
-        log self
-      )
-    )
-    
-    // cursor
-    cursor_x = 0
-    cursor_y = 0
-    def goto(number x, number y) (
-      self.cursor_x = x
-      self.cursor_y = y
-    )
-    
-    def change_x(number x) (
-      self.cursor_x += x
-    )
-    def change_y(number y) (
-      self.cursor_y += y
-    )
-    def change(number x, number y) (
-      self.cursor_x += x
-      self.cursor_y += y
-    )
-    
-    // utils
-    def getTextWidth(string text) (
-      return text.len
-    )
-    
-    // rendering
-    def box(array area, string color) (
-      c color
-      pen "size" 1
-      goto area[1] area[2]
-      pen "down"
-      goto area[3] area[2]
-      goto area[3] area[4]
-      goto area[1] area[4]
-      goto area[1] area[2]
-      pen "up"
-    )
-    
-    def filledBox(array area, rounding, string color) (
-      local x = rwl.area.centerX(area)
-      local y = rwl.area.centerY(area)
-      local w = rwl.area.width(area)
-      local h = rwl.area.height(area)
-      
-      if typeof(rounding) == "number" (
-        rounding @= [rounding,rounding,rounding,rounding]
-      )
-      
-      c color
-      
-      if typeof(rounding) == "number" (
-        goto x y
-        frame area[1] area[4] area[3] area[2] (
-          local r = max(rounding * 2 - 10, 0)
-          square w - r h - r r
-        )
-      ) else if typeof(rounding) == "array" (
-        // could rework this to have it be corner - rounding for pos
-        // so it would have higher parity with canvas?
-        x = round(x)
-        y = round(y)
-        local hw = w / 2
-        local hh = h / 2
-        goto x y
-        //local r = min(rounding[1] * 2, min(w, h) / 2)
-        frame area[1] y x area[2] (
-          local r = max(rounding[1] * 2, 0)
-          goto frame.left + hw frame.bottom + hh
-          square frame.width * 2 - r frame.height * 2 - r r
-        )
-        frame x y area[3] area[2] (
-          local r = max(rounding[2] * 2, 0)
-          goto frame.right - hw frame.bottom + hh
-          square frame.width * 2 - r frame.height * 2 - r r
-        )
-        frame area[1] area[4] x y (
-          local r = max(rounding[3] * 2, 0)
-          goto frame.left + hw frame.top - hh
-          square frame.width * 2 - r frame.height * 2 - r r
-        )
-        frame x area[4] area[3] y (
-          local r = max(rounding[4] * 2, 0)
-          goto frame.right - hw frame.top - hh
-          square frame.width * 2 - r frame.height * 2 - r r
-        )
-      )
-    )
-    
-    def filledTransparentArea(array area, string color, number opacity) (
-      frame area[1] area[4] area[3] area[2] (
-        c color
-        pen "opacity" opacity
-        pen "size" 9999
-        goto 0 0
-        pen "down"
-        pen "up"
-      )
-    )
-    
-    def ctext(string text, number size, string color) (
-      void ptext(text, self.cursor_x, self.cursor_y, size, color)
-    )
-    def ptext(string text, number x, number y, number size, string color) (
-      goto x y
-      text text size : c#color
-    )
-    
-    def cicon(string src, number size, string color) (
-      void picon(text, self.cursor_x, self.cursor_y, size, color)
-    )
-    def picon(string src, number x, number y, number size, string color) (
-      goto x y
-      icon src size : c#color
-    )
-  )
-  return __imports__8840a5e065c53e817186a2216f863bca
 case "./src/rtr/apis/browser.osl"
   class __imports__7fe61a304bd2774f13f2fe6e50c50f2a (
     def addToMod(object doc, object mod) (
@@ -2298,11 +1691,55 @@ case "./src/rtr/apis/browser.osl"
           getCategories: rtr.value.RTROslFuncValue(def() -> (
             return rtr.value.RTRArrValue(shared.settings.entries.getKeys().map(c -> rtr.value.RTRStrValue(c)))
           )),
-          getCategory: rtr.value.RTROslFuncValue(def() -> (
-          
-          ))
+          getPage: rtr.value.RTROslFuncValue(def(args) -> (
+            local category @= shared.settings.entries[args[1].stringify()]
+            if category == null (
+              return rtr.value.RTRNullValue()
+            )
+            return rtr.value.RTRObjValue({
+              props: rtr.value.RTRArrValue(category.getEntries().map(def(e) -> (
+                return rtr.value.RTRObjValue({
+                  name: rtr.value.RTRStrValue(e[1]),
+                  type: rtr.value.RTRStrValue(e[2].type),
+                  desc: rtr.value.RTRStrValue(e[2].desc)
+                })
+              )))
+            })
+          )),
+          getProperty: rtr.value.RTROslFuncValue(def(args) -> (
+            local value @= shared.settings.get(args[1].stringify(), args[2].stringify())
+            return rtr.apis.browser.toRtr(value)
+          )),
+          setProperty: rtr.value.RTROslFuncValue(def(args) -> (
+            local value @= rtr.apis.browser.toRtr(args[3])
+            void shared.settings.set(args[1].stringify(), args[2].stringify(), value)
+          )),
         })
       }))
+    )
+    
+    def toOsl(object value) (
+      local type @= val.getRtrType()
+      
+      switch type.data.name (
+        case "str"; case "num"; case "bool"
+          return val.value
+        default
+          throw "cannot convert" + type.data.name + "to osl"
+      )
+    )
+    
+    def toRtr(value) (
+      switch typeof(value) (
+        case "string"
+          return rtr.value.RTRStrValue(value)
+        case "number"
+          return rtr.value.RTRNumValue(value)
+        case "boolean"
+          return rtr.value.RTRBoolValue(value)
+        default
+          throw "cannot convert" + typeof(value) + "to rtr"
+      )
     )
   )
   return __imports__7fe61a304bd2774f13f2fe6e50c50f2a
@@ -2339,6 +1776,9 @@ case "./src/rtr/apis/rwl.osl"
             )
             return rtr.value.RTRNullValue()
           
+          case "vars"
+            return self.doc.vars
+          
           // methods
           case "redirect"
             return rtr.value.RTROslFuncValue(def(args, _inst, doc) -> (
@@ -2356,6 +1796,10 @@ case "./src/rtr/apis/rwl.osl"
           case "createTextElement"
             return rtr.value.RTROslFuncValue(def(args, _inst) -> (
               return rtr.apis.rwl.RTRElement(rwl.main.RWLElement(rtr.apis.rwl.rtrValueToRwlValue(args[1]), { flags: [], pairs: [] }))
+            ))
+          case "createIconElement"
+            return rtr.value.RTROslFuncValue(def(args, _inst) -> (
+              return rtr.apis.rwl.RTRElement(rwl.main.RWLIcon({ flags: [], pairs: [ ["src", rwl.value.RWLStrValue(args[1].stringify())] ] }))
             ))
           case "createScript"
             return rtr.value.RTROslFuncValue(def(args, _inst, doc) -> (
@@ -2476,7 +1920,7 @@ case "./src/rtr/apis/rwl.osl"
               if elem.elem.children == null (
                 throw elem.kind + "cannot contain children"
               )
-              if !args[1].isRwlElem (
+              if args[1].isRwlElem != true (
                 throw "argument is not rwl element"
               )
               void elem.elem.children.append(args[1].elem)
@@ -2521,6 +1965,12 @@ case "./src/rtr/apis/rwl.osl"
           return
         )
         
+        if k == "src" and self.elem.name == "RWLIcon" (
+          self.elem.src @= value.value
+          void self.elem.updateFromCache()
+          return
+        )
+        
         for i self.elem.header.pairs.len (
           local pair @= self.elem.header.pairs[i]
           if pair[1] == k (
@@ -2544,8 +1994,10 @@ case "./src/rtr/apis/rwl.osl"
           return rtr.value.RTRStrValue(val.value)
         case "num"
           return rtr.value.RTRNumValue(val.value)
-        // percentage
-        // color
+        case "percentage"
+          return rtr.value.RTRPercentageValue(val.value)
+        case "color"
+          return rtr.value.RTRColorValue(val.value)
       )
       
       return rtr.value.RTRNullValue()
@@ -2559,6 +2011,8 @@ case "./src/rtr/apis/rwl.osl"
           return rwl.value.RWLStrValue(val.value)
         case "num"
           return rwl.value.RWLNumValue(val.value)
+        case "percentage"
+          return rwl.value.RWLPercentageValue(val.value)
         case "color"
           return rwl.value.RWLColorValue(val.value)
       )
@@ -2616,6 +2070,9 @@ case "./src/rtr/instruction.osl"
     def callOp(number amount) (
       return { kind: "call", args: amount }
     )
+    def callEv(string name) (
+      return { kind: "callEv", name }
+    )
     def unary(string op) (
       return { kind: "unary", op }
     )
@@ -2638,6 +2095,9 @@ case "./src/rtr/instruction.osl"
     )
     def num(number data) (
       return { kind: "num", data }
+    )
+    def percentage(number data) (
+      return { kind: "percentage", data }
     )
     def bool(boolean data) (
       return { kind: "bool", data }
@@ -2925,6 +2385,11 @@ case "./src/rtr/compiler.osl"
           out ++= args
           out += rtr.instruction.callOp(expression.args.len)
           return out
+        case "call_event"
+          return [
+            rtr.instruction.callEv(expression.name),
+            rtr.instruction.null()
+          ]
         case "decl"
           local val @= compileExpression(expression.val)
           if typeof(val) != "array" and val.isError (
@@ -2945,6 +2410,7 @@ case "./src/rtr/compiler.osl"
               void out.append(rtr.instruction.asivar(expression.tar.name, expression.op))
               return out
             case "prop"
+              // should probably check errs :pensive:
               out ++= compileExpression(expression.tar.obj)
               if typeof(expression.tar.key) == "string" (
                 out += rtr.instruction.str(expression.tar.key)
@@ -2958,6 +2424,9 @@ case "./src/rtr/compiler.osl"
           return [rtr.instruction.null()]
         case "unary"
           local val @= compileExpression(expression.expr)
+          if typeof(val) != "array" and val.isError (
+            return val
+          )
           
           local out @= []
           out ++= val
@@ -3000,8 +2469,14 @@ case "./src/rtr/compiler.osl"
           return [rtr.instruction.str(expression.val)]
         case "num"
           return [rtr.instruction.num(expression.val)]
+        case "percentage"
+          return [rtr.instruction.percentage(expression.val)]
         case "func"
-          return [rtr.instruction.func(compileStatement(expression.body), expression.args)]
+          local body @= compileStatement(expression.body)
+          if typeof(body) != "array" and body.isError (
+            return body
+          )
+          return [rtr.instruction.func(body, expression.args)]
         case "arr"
           local out @= []
           for i expression.elems.len (
@@ -3022,7 +2497,7 @@ case "./src/rtr/compiler.osl"
           return [rtr.instruction.color(expression.val)]
         
         default
-          log expression
+          log "expr:" expression
           return rtr.error.Error("UnknownExpressionKind", { kind: expression.kind })
       )
       
@@ -3157,16 +2632,28 @@ case "./src/rtr/value.osl"
         return self.value > 0
       )
       def arrify() (
-        return self.value.toStr().split("").map(e -> rtr.value.RTRStrValue(e))
+        return self.stringify().split("").map(e -> rtr.value.RTRStrValue(e))
       )
       def length() (
-        return self.value.toStr().length
+        return self.stringify().length
       )
       def getItem(index) (
-        return self.value.toStr()[index.numbify() + 1]
+        return self.stringify()[index.numbify() + 1]
       )
       def isEqual(other) (
         return self.getRtrType().isEqual(other.getRtrType()) and self.value === other.value
+      )
+    )
+    
+    class RTRPercentageValue extends RTRNumValue (
+      def getRtrType() (
+        return rtr.value.RTRTypeValue({
+          name: "percentage"
+        })
+      )
+      
+      def stringify() (
+        return self.value.toStr() ++ "%"
       )
     )
     
@@ -3299,7 +2786,7 @@ case "./src/rtr/value.osl"
         return false
       )
       def isEqual(other) (
-        return self.getRtrType().isEqual(other.getRtrType()) and self.value === other.value
+        return self.getRtrType().isEqual(other.getRtrType())
       )
     )
     
@@ -3430,21 +2917,38 @@ case "./src/rtr/error.osl"
   return __imports__a51b04c580d521af176787ba84843c9a
 case "./src/rtr/ast.osl"
   class __imports__2691a00e099698fa56c4748f2551eb65 (
+    local canUseJs = shared.config.browser.phosphorus.useJsAstGen
+    jsVersion = canUseJs ? js.ast null
+    
     class Parser (
       def init(string text, scriptLocation) (
         self.scriptLocation @= scriptLocation
-        void self.tokenise(text)
+        
+        self.text @= text
+        
+        if rtr.ast.jsVersion == null (
+          void self.tokenise(text)
+        )
       )
       
       def parse() (
-        self.pointer = 1
-        local out @= self.blockContent(true)
+        local start = performance
         
-        if !self.atEnd() (
-          throw "unexpected token" + self.peek()
+        if rtr.ast.jsVersion == null (
+          self.pointer = 1
+          local out @= self.blockContent(true)
+          
+          if !self.atEnd() (
+            throw "unexpected token" + self.peek()
+          )
+          
+          out @= { elements: out }
+        ) else (
+          local out @= rtr.ast.jsVersion(self.text)
         )
         
-        return { elements: out }
+        log "ast gen took" performance - start
+        return out
       )
       
       def peek(amount) (
@@ -3457,6 +2961,34 @@ case "./src/rtr/ast.osl"
         return tkn
       )
       def consumeWhitespace() (
+        local end = false
+        while !end and !self.atEnd() (
+          local tkn = self.peek()
+          
+          if self.peek() == "/" and self.peek(2) == "/" (
+            void self.consume()
+            void self.consume()
+            while self.consume() != "\n" and !self.atEnd() (;)
+          )
+          
+          if self.peek() == "/" and self.peek(2) == "*" (
+            void self.consume()
+            void self.consume()
+            while self.peek() ++ self.peek(2) != "*/" and !self.atEnd() (
+              void self.consume()
+            )
+            void self.consume()
+            void self.consume()
+          )
+          
+          if tkn.match("/^\\s$/") != null (
+            void self.consume()
+          ) else (
+            end = true
+          )
+        )
+      )
+      def consumeWhitespace2() (
         while self.peek().match("/^\\s$/") != null (
           void self.consume()
         )
@@ -3549,6 +3081,7 @@ case "./src/rtr/ast.osl"
           if self.peek() == ";" (
             void self.consume()
           )
+          void self.consumeWhitespace()
           if self.peek() == "}" or self.atEnd() (
             end = true
           )
@@ -3745,6 +3278,7 @@ case "./src/rtr/ast.osl"
           }
         )
         
+        local start @= self.getPos()
         local expr @= self.expression()
         if expr != null (
           void self.consumeWhitespace()
@@ -3754,7 +3288,8 @@ case "./src/rtr/ast.osl"
           
           return {
             kind: "expression",
-            expr
+            expr,
+            start, end: self.getPos()
           }
         ) else (
           throw "unexpected token '" ++ self.peek() ++ "'"
@@ -3806,7 +3341,8 @@ case "./src/rtr/ast.osl"
         if self.peek() == "*" (
           void self.consume()
           return {
-            kind: "any"
+            kind: "any",
+            start, end: self.getPos()
           }
         )
         
@@ -3822,7 +3358,8 @@ case "./src/rtr/ast.osl"
         
         return {
           kind,
-          name
+          name,
+          start, end: self.getPos()
         }
       )
       
@@ -3896,6 +3433,8 @@ case "./src/rtr/ast.osl"
       )
       
       def equality() (
+        local start @= self.getPos()
+        
         local expr @= self.comparison()
         void self.consumeWhitespace()
         
@@ -3906,7 +3445,8 @@ case "./src/rtr/ast.osl"
             kind: "binary",
             op,
             left: expr,
-            right
+            right,
+            start, end: self.getPos()
           }
         )
         
@@ -3914,6 +3454,8 @@ case "./src/rtr/ast.osl"
       )
       
       def comparison() (
+        local start @= self.getPos()
+        
         local expr @= self.term()
         
         local end = false
@@ -3932,7 +3474,8 @@ case "./src/rtr/ast.osl"
               kind: "binary",
               op,
               left: expr,
-              right
+              right,
+              start, end: self.getPos()
             }
           ) else (
             end = true
@@ -3943,6 +3486,8 @@ case "./src/rtr/ast.osl"
       )
       
       def term() (
+        local start @= self.getPos()
+        
         local expr @= self.factor()
         void self.consumeWhitespace()
         
@@ -3953,7 +3498,8 @@ case "./src/rtr/ast.osl"
             kind: "binary",
             op,
             left: expr,
-            right
+            right,
+            start, end: self.getPos()
           }
           void self.consumeWhitespace()
         )
@@ -3962,6 +3508,8 @@ case "./src/rtr/ast.osl"
       )
       
       def factor() (
+        local start @= self.getPos()
+        
         local expr @= self.otherBinary()
         void self.consumeWhitespace()
         
@@ -3972,7 +3520,8 @@ case "./src/rtr/ast.osl"
             kind: "binary",
             op,
             left: expr,
-            right
+            right,
+            start, end: self.getPos()
           }
           void self.consumeWhitespace()
         )
@@ -3981,6 +3530,8 @@ case "./src/rtr/ast.osl"
       )
       
       def otherBinary() (
+        local start @= self.getPos()
+        
         local expr @= self.coalescence()
         void self.consumeWhitespace()
         
@@ -3991,7 +3542,8 @@ case "./src/rtr/ast.osl"
             kind: "binary",
             op,
             left: expr,
-            right
+            right,
+            start, end: self.getPos()
           }
           void self.consumeWhitespace()
         )
@@ -4000,6 +3552,8 @@ case "./src/rtr/ast.osl"
       )
       
       def coalescence() (
+        local start @= self.getPos()
+        
         local expr @= self.unary()
         void self.consumeWhitespace()
         
@@ -4010,7 +3564,8 @@ case "./src/rtr/ast.osl"
             kind: "binary",
             op,
             left: expr,
-            right
+            right,
+            start, end: self.getPos()
           }
           void self.consumeWhitespace()
         )
@@ -4019,13 +3574,16 @@ case "./src/rtr/ast.osl"
       )
       
       def unary() (
+        local start @= self.getPos()
+        
         if self.peek(2) != "=" (
           switch self.peek() (
             case "-"; case "+"; case "!"; case "?"
               return {
                 kind: "unary",
                 type: self.consume(),
-                expr: self.callExpr()
+                expr: self.callExpr(),
+                start, end: self.getPos()
               }
           )
         )
@@ -4035,6 +3593,18 @@ case "./src/rtr/ast.osl"
       
       def callExpr() (
         local start @= self.getPos()
+        if self.peek() == "call" and self.peek(2) == "(" (
+          void self.consume()
+          void self.expect("(")
+          local name = self.expectText()
+          void self.expect(")")
+          return {
+            kind: "call_event",
+            name,
+            start, end: self.getPos()
+          }
+        )
+        
         local expr @= self.func()
         
         if self.peek() == "(" (
@@ -4135,6 +3705,8 @@ case "./src/rtr/ast.osl"
       )
       
       def objProperty() (
+        local start = self.getPos()
+        
         local expr @= self.primary()
         void self.consumeWhitespace()
         
@@ -4152,7 +3724,8 @@ case "./src/rtr/ast.osl"
           expr @= {
             kind: "prop",
             obj: expr,
-            key
+            key,
+            start, end: self.getPos()
           }
           if self.peek() == "(" (
             void self.consume()
@@ -4178,7 +3751,8 @@ case "./src/rtr/ast.osl"
             expr @= {
               kind: "call",
               args,
-              func: expr
+              func: expr,
+              start, end: self.getPos()
             }
           )
           void self.consumeWhitespace()
@@ -4226,10 +3800,13 @@ case "./src/rtr/ast.osl"
           }
         )
         
+        error self.getPos()
         throw "unexpected token '" ++ self.peek() ++ "'"
       )
       
       def arr() (
+        local start @= self.getPos()
+        
         void self.expect("[")
         void self.consumeWhitespace()
         
@@ -4253,11 +3830,14 @@ case "./src/rtr/ast.osl"
         
         return {
           kind: "arr",
-          elems
+          elems,
+          start, end: self.getPos()
         }
       )
       
       def obj() (
+        local start @= self.getPos()
+        
         void self.expect("{")
         void self.consumeWhitespace()
         
@@ -4285,7 +3865,8 @@ case "./src/rtr/ast.osl"
         
         return {
           kind: "obj",
-          pairs
+          pairs,
+          start, end: self.getPos()
         }
       )
       
@@ -4308,8 +3889,9 @@ case "./src/rtr/ast.osl"
         local q @= self.expects(["'","\"","`"])
         local content = ""
         local end = false
-        while (!end) (
+        while !end (
           local tkn @= self.peek()
+          
           if tkn == "\\" (
             void self.consume()
             local tkn = self.consume()
@@ -4356,10 +3938,16 @@ case "./src/rtr/ast.osl"
           val ++= self.consume()
         )
         
+        local kind = "num"
+        if self.peek() == "%" (
+          void self.consume()
+          kind = "percentage"
+        )
+        
         val @= val.toNum()
         
         return {
-          kind: "num",
+          kind,
           val,
           start, end: self.getPos()
         }
@@ -4369,6 +3957,8 @@ case "./src/rtr/ast.osl"
   return __imports__2691a00e099698fa56c4748f2551eb65
 case "./src/rtr/main.osl"
   class __imports__954b63a69b7120a02fa83923726ef587 (
+    boolean debug = false
+    
     class Module (
       def init(object ast) (
         void self.loadFromAst(ast)
@@ -4605,7 +4195,6 @@ case "./src/rtr/main.osl"
         
         for i self.events.len (
           local ev @= self.events[i][2]
-          
           if target.element != null (
             if ev.target.kind == "property" and ev.target.eventName == target.name (
               if ev.target.target.kind == "id" (
@@ -4660,7 +4249,10 @@ case "./src/rtr/main.osl"
         for i evs.len (
           void self.runBlock(evs[i].body)
         )
-        log "exec time" performance - p
+        
+        if rtr.main.debug (
+          log "exec time" performance - p
+        )
       )
       def runEventRaw(object target, object data) (
         local ev @= self.findEligible(target)[1]
@@ -4672,7 +4264,11 @@ case "./src/rtr/main.osl"
         void self.initTop()
         local p @= performance
         local out @= self.runBlock(ev.body)
-        log "exec time" performance - p
+        
+        if rtr.main.debug (
+          log "exec time" performance - p
+        )
+        
         return out
       )
       def runBlock(object block) (
@@ -4681,20 +4277,27 @@ case "./src/rtr/main.osl"
           local compileOut @= rtr.compiler.compileBlock(block)
           if typeof(compileOut) != "array" and compileOut.isError (
             block.compile = false
+            
+            error compileOut.stringify()
           ) else (
             block.compile @= compileOut
+            
+            self.inst.compiled ??= []
+            void self.inst.compiled.append({
+              body: compileOut,
+              start: block.start,
+              end: block.end,
+              ast: block,
+              time: performance - start
+            })
           )
-          self.inst.compiled ??= []
-          void self.inst.compiled.append({
-            body: compileOut,
-            start: block.start,
-            end: block.end,
-            ast: block,
-            time: performance - start
-          })
         )
-        if block.compile != null (
-          return self.runInstructions(block.compile)
+        if block.compile != null and block.compile != false (
+          local out @= self.runInstructions(block.compile)
+          if out.isError (
+            error out
+          )
+          return out
         )
         
         local elements @= block.elements
@@ -4774,6 +4377,11 @@ case "./src/rtr/main.osl"
               void args.append(self.runExpression(expression.args[i]))
             )
             return func.callFunc(self, args) ?? rtr.value.RTRNullValue()
+          case "call_event"
+            void self.inst.runEventRaw({
+              name: expression.name
+            }, {})
+            break
           case "decl"
             local val @= self.runExpression(expression.val)
             
@@ -4853,6 +4461,8 @@ case "./src/rtr/main.osl"
             return rtr.value.RTRStrValue(expression.val)
           case "num"
             return rtr.value.RTRNumValue(expression.val)
+          case "percentage"
+            return rtr.value.RTRPercentageValue(expression.val)
           case "func"
             return rtr.value.RTRAstFuncValue(expression.args, expression.body)
           case "arr"
@@ -4921,7 +4531,7 @@ case "./src/rtr/main.osl"
           case "=="
             return rtr.value.RTRBoolValue(left.isEqual(right))
           case "!="
-            return rtr.value.RTRBoolValue(left.isEqual(right))
+            return rtr.value.RTRBoolValue(!left.isEqual(right))
           
           case ">"
             return rtr.value.RTRBoolValue(left.numbify() > right.numbify())
@@ -4940,177 +4550,192 @@ case "./src/rtr/main.osl"
       )
       
       def runInstructions(array instructions) (
-        self.stack ??= []
-        
-        local labels @= {}
-        
-        for i instructions.len (
-          local instruction @= instructions[i]
-          if instruction.kind == "label" (
-            labels[instruction.name] = i
-          )
-        )
-        
-        local i = 0
-        local iters = 0
-        while i < instructions.len and iters < 1000 (
-          i ++
-          iters ++
-          local instruction @= instructions[i]
-          //log i iters instruction self.stack.map(s -> s.stringify())
-          switch instruction.kind (
-            case "label"; break
-            case "jump"
-              i = labels[instruction.label] ?? i
-              break
-            case "jumpIf"
-              local val @= self.stack.pop() ?? rtr.value.RTRNullValue()
-              if val.boolify() (
-                i = labels[instruction.label] ?? i
-              )
-              break
-            case "jumpNotIf"
-              local val @= self.stack.pop() ?? rtr.value.RTRNullValue()
-              if !val.boolify() (
-                i = labels[instruction.label] ?? i
-              )
-              break
-            
-            case "call"
-              local args @= []
-              loop instruction.args (
-                void args.prepend(self.stack.pop() ?? rtr.value.RTRNullValue())
-              )
-              local func @= self.stack.pop() ?? rtr.value.RTRNullValue()
-              local out @= func.callFunc(self, args) ?? rtr.value.RTRNullValue()
-              if self.returnVal != null (
-                local out @= self.returnVal
-                self.returnVal = null
-                return out
-              )
-              void self.stack.append(out)
-              break
-            case "unary"
-              local val @= self.stack.pop() ?? rtr.value.RTRNullValue()
-              void self.stack.append(self.runUnary(instruction.op, val))
-              break
-            case "binary"
-              local right @= self.stack.pop() ?? rtr.value.RTRNullValue()
-              local left @= self.stack.pop() ?? rtr.value.RTRNullValue()
-              void self.stack.append(self.runBinary(left, instruction.op, right))
-              break
-            case "prop"
-              local key @= self.stack.pop() ?? rtr.value.RTRNullValue()
-              local obj @= self.stack.pop() ?? rtr.value.RTRNullValue()
-              void self.stack.append(obj.getItem(key))
-              break
-            case "len"
-              local obj @= self.stack.pop() ?? rtr.value.RTRNullValue()
-              void self.stack.append(rtr.value.RTRNumValue(obj.length()))
-              break
-              
-            case "null"
-              void self.stack.append(rtr.value.RTRNullValue())
-              break
-            case "str"
-              void self.stack.append(rtr.value.RTRStrValue(instruction.data))
-              break
-            case "bool"
-              void self.stack.append(rtr.value.RTRBoolValue(instruction.data))
-              break
-            case "num"
-              void self.stack.append(rtr.value.RTRNumValue(instruction.data))
-              break
-            case "func"
-              void self.stack.append(rtr.value.RTRBytecodeFuncValue(instruction.args, instruction.body))
-              break
-            case "arr"
-              local elems @= []
-              loop instruction.elems (
-                void elems.prepend(self.stack.pop() ?? rtr.value.RTRNullValue())
-              )
-              void self.stack.append(rtr.value.RTRArrValue(elems))
-              break
-            case "obj"
-              local values @= []
-              loop instruction.keys.len (
-                void values.prepend(self.stack.pop() ?? rtr.value.RTRNullValue())
-              )
-              
-              local obj @= {}
-              for obji values.len (
-                obj[instruction.keys[obji]] @= values[obji]
-              )
-              void self.stack.append(rtr.value.RTRObjValue(obj))
-              break
-            case "color"
-              void self.stack.append(rtr.value.RTRColorValue(instruction.data))
-              break
-            
-            case "get"
-              local val @= self.getScopeVar(instruction.name) ?? rtr.value.RTRNullValue()
-              void self.stack.append(val)
-              break
-            case "decl"
-              local val @= self.stack[-1] ?? rtr.value.RTRNullValue()
-              void self.declScopeVar(instruction.name, val, {
-                type: val.getRtrType()
-              })
-              break
-            case "newScope"
-              void self.newScope({})
-              break
-            case "popScope"
-              void self.popScope()
-              break
-            
-            case "asivar"
-              local val @= self.stack[-1] ?? rtr.value.RTRNullValue()
-              
-              local existingMeta @= self.getScopeVarMeta(instruction.name)
-              local existing @= self.getScopeVar(instruction.name)
-              
-              if instruction.op != null (
-                val @= self.runBinary(existing, instruction.op, val)
-              )
-              
-              local curType @= val.getRtrType()
-              if existingMeta.type != null (
-                if !existingMeta.type.isEqual(curType) (
-                  // replace with return err
-                  throw "cannot assign" + curType.stringify() + "to" + existingMeta.type.stringify() + "variable" 
-                )
-              )
-              
-              void self.setScopeVar(instruction.name, val)
-              break
-            case "asiprop"
-              local key @= self.stack.pop() ?? rtr.value.RTRNullValue()
-              local obj @= self.stack.pop() ?? rtr.value.RTRNullValue()
-              
-              local val @= self.stack[-1] ?? rtr.value.RTRNullValue()
-              if instruction.op != null (
-                val @= self.runBinary(obj.getItem(key), instruction.op, val)
-              )
-              
-              void obj.setItem(key, val)
-              break
-            
-            case "pop"
-              void self.stack.pop()
-              break
-            case "dupe"
-              void self.stack.append(self.stack[instruction.i])
-              break
-            
-            default
-              return rtr.error.Error("UnknownInstructionKind", { kind: instruction.kind })
-          )
-          
-        )
-        
-        return rtr.value.RTRNullValue()
+        return rtr.main.runInstructions(self, instructions)
       )
+    )
+    
+    def runInstructions(object inst, array instructions) (
+      inst.stack ??= []
+      
+      local labels @= {}
+      
+      local i = 0
+      for i instructions.len (
+        local instruction @= instructions[i]
+        if instruction.kind == "label" (
+          labels[instruction.name] = i
+        )
+      )
+      
+      local i = 0
+      local iters = 0
+      while i < instructions.len and iters < 1000 (
+        i ++
+        iters ++
+        local instruction @= instructions[i]
+        //log i iters instruction inst inst.stack.map(s -> s.stringify())
+        switch instruction.kind (
+          case "label"; break
+          case "jump"
+            i = labels[instruction.label] ?? i
+            break
+          case "jumpIf"
+            local val @= inst.stack.pop() ?? rtr.value.RTRNullValue()
+            if val.boolify() (
+              i = labels[instruction.label] ?? i
+            )
+            break
+          case "jumpNotIf"
+            local val @= inst.stack.pop() ?? rtr.value.RTRNullValue()
+            if !val.boolify() (
+              i = labels[instruction.label] ?? i
+            )
+            break
+          
+          case "call"
+            local args @= []
+            loop instruction.args (
+              void args.prepend(inst.stack.pop() ?? rtr.value.RTRNullValue())
+            )
+            local func @= inst.stack.pop() ?? rtr.value.RTRNullValue()
+            local out @= func.callFunc(inst, args) ?? rtr.value.RTRNullValue()
+            if out.isError (
+              return out
+            )
+            if inst.returnVal != null (
+              local out @= inst.returnVal
+              inst.returnVal = null
+              return out
+            )
+            void inst.stack.append(out)
+            break
+          case "callEv"
+            void inst.inst.runEventRaw({
+              name: instruction.name
+            }, {})
+            break
+          case "unary"
+            local val @= inst.stack.pop() ?? rtr.value.RTRNullValue()
+            void inst.stack.append(inst.runUnary(instruction.op, val))
+            break
+          case "binary"
+            local right @= inst.stack.pop() ?? rtr.value.RTRNullValue()
+            local left @= inst.stack.pop() ?? rtr.value.RTRNullValue()
+            void inst.stack.append(inst.runBinary(left, instruction.op, right))
+            break
+          case "prop"
+            local key @= inst.stack.pop() ?? rtr.value.RTRNullValue()
+            local obj @= inst.stack.pop() ?? rtr.value.RTRNullValue()
+            void inst.stack.append(obj.getItem(key))
+            break
+          case "len"
+            local obj @= inst.stack.pop() ?? rtr.value.RTRNullValue()
+            void inst.stack.append(rtr.value.RTRNumValue(obj.length()))
+            break
+            
+          case "null"
+            void inst.stack.append(rtr.value.RTRNullValue())
+            break
+          case "str"
+            void inst.stack.append(rtr.value.RTRStrValue(instruction.data))
+            break
+          case "bool"
+            void inst.stack.append(rtr.value.RTRBoolValue(instruction.data))
+            break
+          case "num"
+            void inst.stack.append(rtr.value.RTRNumValue(instruction.data))
+            break
+          case "percentage"
+            void inst.stack.append(rtr.value.RTRPercentageValue(instruction.data))
+            break
+          case "func"
+            void inst.stack.append(rtr.value.RTRBytecodeFuncValue(instruction.args, instruction.body))
+            break
+          case "arr"
+            local elems @= []
+            loop instruction.elems (
+              void elems.prepend(inst.stack.pop() ?? rtr.value.RTRNullValue())
+            )
+            void inst.stack.append(rtr.value.RTRArrValue(elems))
+            break
+          case "obj"
+            local values @= []
+            loop instruction.keys.len (
+              void values.prepend(inst.stack.pop() ?? rtr.value.RTRNullValue())
+            )
+            
+            local obj @= {}
+            for obji values.len (
+              obj[instruction.keys[obji]] @= values[obji]
+            )
+            void inst.stack.append(rtr.value.RTRObjValue(obj))
+            break
+          case "color"
+            void inst.stack.append(rtr.value.RTRColorValue(instruction.data))
+            break
+          
+          case "get"
+            local val @= inst.getScopeVar(instruction.name) ?? rtr.value.RTRNullValue()
+            void inst.stack.append(val)
+            break
+          case "decl"
+            local val @= inst.stack[-1] ?? rtr.value.RTRNullValue()
+            void inst.declScopeVar(instruction.name, val, {
+              type: val.getRtrType()
+            })
+            break
+          case "newScope"
+            void inst.newScope({})
+            break
+          case "popScope"
+            void inst.popScope()
+            break
+          
+          case "asivar"
+            local val @= inst.stack[-1] ?? rtr.value.RTRNullValue()
+            
+            local existingMeta @= inst.getScopeVarMeta(instruction.name)
+            local existing @= inst.getScopeVar(instruction.name)
+            
+            if instruction.op != null (
+              val @= inst.runBinary(existing, instruction.op, val)
+            )
+            
+            local curType @= val.getRtrType()
+            if existingMeta.type != null (
+              if !existingMeta.type.isEqual(curType) (
+                // replace with return err
+                throw "cannot assign" + curType.stringify() + "to" + existingMeta.type.stringify() + "variable" 
+              )
+            )
+            
+            void inst.setScopeVar(instruction.name, val)
+            break
+          case "asiprop"
+            local key @= inst.stack.pop() ?? rtr.value.RTRNullValue()
+            local obj @= inst.stack.pop() ?? rtr.value.RTRNullValue()
+            
+            local val @= inst.stack[-1] ?? rtr.value.RTRNullValue()
+            if instruction.op != null (
+              val @= inst.runBinary(obj.getItem(key), instruction.op, val)
+            )
+            
+            void obj.setItem(key, val)
+            break
+          
+          case "pop"
+            void inst.stack.pop()
+            break
+          case "dupe"
+            void inst.stack.append(inst.stack[instruction.i])
+            break
+          
+          default
+            return rtr.error.Error("UnknownInstructionKind", { kind: instruction.kind })
+        )
+      )
+      
+      return rtr.value.RTRNullValue()
     )
     
     class RTR (
@@ -5148,6 +4773,19 @@ case "./src/rtr/main.osl"
         local mods @= self.modules.getValues()
         for i mods.len (
           void mods[i].runEvents(target, data)
+        )
+      )
+      
+      def runEventRaw(object target, object data) (
+        local mods @= self.modules.getValues()
+        for i mods.len (
+          void mods[i].runEventRaw(target, data)
+        )
+      )
+      def runEventsRaw(object target, object data) (
+        local mods @= self.modules.getValues()
+        for i mods.len (
+          void mods[i].runEventsRaw(target, data)
         )
       )
     )
@@ -5876,11 +5514,11 @@ case "./src/rwl/main.osl"
         
       )
       
-      def topUpdate() (
+      def interactUpdate() (
         
       )
       
-      def interactUpdate() (
+      def interactEvent() (
         
       )
       
@@ -6445,9 +6083,8 @@ case "./src/rwl/main.osl"
         )
       )
       
-      def topUpdate(object context) (
-        //log "hi" context shared.input.rwlLeftClick
-        if shared.input.rwlLeftClick (
+      def interactEvent(string ev, data, object context) (
+        if ev == "click" and data == "left" (
           void context.rtr.runEvents({
             name: "click",
             element: self
@@ -6485,7 +6122,7 @@ case "./src/rwl/main.osl"
       )
       
       def update(array area, object context) (
-        if self.mod != null (
+        if self.mod != null and false (
           void self.mod.runEvent({
             name: "onupdate"
           }, {})
@@ -6743,12 +6380,16 @@ case "./src/rwl/main.osl"
     class RWLIcon extends RWLNode (
       kind = "icon"
       
+      def init(object header) (
+        self.header @= header
+      )
+      
       def update(array area, object context) (
         local scale @= self.expectOnHeader("scale", "num")
         if scale.isError (
           return scale
         )
-        self.scale = size.value ?? 1
+        self.scale = scale.value ?? 1
         
         local src @= self.expectOnHeader("src", "str")
         if src.isError (
@@ -6776,12 +6417,10 @@ case "./src/rwl/main.osl"
           return
         )
         
-        void shared.graphics.picon(self.src, self.x, self.y, self.scale, self.color ?? "#fff")
+        if self.src != null (
+          void shared.graphics.picon(self.src, self.x, self.y, self.scale, self.color ?? "#fff")
+        )
         void self.renderDevtools()
-      )
-      
-      def init(object header) (
-        self.header @= header
       )
     )
     
@@ -6959,10 +6598,12 @@ case "./src/rwl/main.osl"
           void self.elements[i].interactUpdate(context)
         )
         
-        //log context.top
-        
-        if context.top != null (
-          void context.top.topUpdate(context)
+        self.top @= context.top
+      )
+      
+      def interactEvent(string ev, data, object context) (
+        if self.top != null (
+          void self.top.interactEvent(ev, data, context)
         )
       )
       
@@ -7011,6 +6652,696 @@ case "./src/rwl/main.osl"
     )
   )
   return __imports__b471b13f60903428337025313115b852
+case "./src/shared/save.osl"
+  class __imports__adb9c40aa8851930265661f644c37fb1 (
+    def setName(string name) (
+      save name "set_directory"
+    )
+    
+    def exists(string fileName) (
+      return fileName.saveExists()
+    )
+    
+    def get(string fileName) (
+      if !self.exists(fileName) (
+        throw fileName ++ "does not exist"
+      )
+    
+      return fileName.saveGet().toStr()
+    )
+    
+    def set(string fileName, string data) (
+      save fileName "set" data
+    )
+  )
+  return __imports__adb9c40aa8851930265661f644c37fb1
+case "./src/shared/settings.osl"
+  class __imports__b9d870002d9a38c65f33053e346a5da3 (
+    object entries = {
+      devtools: {
+        dockside: {
+          type: "string",
+          desc: "what side devtools is anchored to",
+          default: "r",
+          applySetting: def(string value) -> (
+            devtools.main.anchor = value
+          )
+        },
+        open: {
+          type: "boolean",
+          desc: "if devtools is open or not",
+          default: false,
+          applySetting: def(boolean value) -> (
+            devtools.main.open = value
+          )
+        },
+        menu: {
+          type: "string",
+          desc: "current open devtools menu",
+          default: "console",
+          applySetting: def(string value) -> (
+            devtools.main.menu = value
+          )
+        }
+      },
+      net: {
+        offline: {
+          type: "boolean",
+          desc: "disables networking",
+          default: false
+        }
+      }
+    }
+    
+    object _data = {}
+    
+    def load() (
+      local br @= shared.config.browser
+      void shared.save.setName(br.name ++ "@" ++ br.save_developer)
+      if !shared.save.exists("settings.json") (
+        void self.write()
+      )
+      self._data @= self.deserialize(shared.save.get("settings.json"))
+      void self.applySettings()
+      void self.write()
+    )
+    
+    def write() (
+      void shared.save.set("settings.json", self.serialize())
+    )
+    
+    def get(string category, string entry) (
+      return self._data[category][entry]
+    )
+    def set(string category, string entry, value) (
+      local entryData @= self.entries[category][entry]
+      if entryData == null (
+        throw "setting" + category ++ "/" ++ entry + "doesnt exist"
+      )
+      
+      if entryData.type != typeof(value) (
+        throw "expected" + entry.type + "for" + category ++ "/" ++ entry + "but got" + typeof(value)
+      )
+      self._data[category][entry] @= value
+      void self.write()
+      void self.applySettings()
+    )
+    
+    def applySettings() (
+      local categoryData @= self.entries.getEntries()
+      for categoryI categoryData.len (
+        local category @= categoryData[categoryI]
+        local entryData @= category[2].getEntries()
+        for entryI entryData.len (
+          local entry @= entryData[entryI]
+          local value = self._data[category[1]][entry[1]] ?? entry[2].default
+          if entry[2].applySetting != null (
+            void entry[2].applySetting(value)
+          )
+        )
+      )
+    )
+    
+    def serialize() (
+      local out @= {}
+      local categoryData @= self.entries.getEntries()
+      for categoryI categoryData.len (
+        local category @= categoryData[categoryI]
+        out[category[1]] @= {}
+        local entryData @= category[2].getEntries()
+        for entryI entryData.len (
+          local entry @= entryData[entryI]
+          local value = self._data[category[1]][entry[1]] ?? entry[2].default
+          out[category[1]][entry[1]] @= value
+        )
+      )
+      return out.JsonStringify()
+    )
+    def deserialize(string data) (
+      local raw @= data.JsonParse()
+      
+      local out @= {}
+      local categoryData @= self.entries.getEntries()
+      for categoryI categoryData.len (
+        local category @= categoryData[categoryI]
+        out[category[1]] @= {}
+        local entryData @= category[2].getEntries()
+        for entryI entryData.len (
+          local entry @= entryData[entryI]
+          local value = raw[category[1]][entry[1]] ?? entry[2].default
+          out[category[1]][entry[1]] @= value
+        )
+      )
+      return out
+    )
+  )
+  return __imports__b9d870002d9a38c65f33053e346a5da3
+case "./src/shared/input.osl"
+  class __imports__f477f9b400e164d253c3bfeb6a54c186 (
+    boolean rwlLeftClick = false
+    
+    def reset() (
+      self.rwlLeftClick = false
+    )
+    
+    def update() (
+      self.leftClick = mouse_left and !self.leftDown
+      if self.leftClick (
+        void self.sendListeners("click", "left")
+      )
+      self.leftDown = mouse_left
+      
+      // TODO: make a keybind system?
+      if "`".onKeyDown() (
+        void shared.settings.set("devtools", "open", !shared.settings.get("devtools", "open"))
+      )
+    )
+    
+    object listeners = {}
+    
+    def addListener(string key, function callback, data) (
+      self.listeners[key] @= [callback, data]
+      return key
+    )
+    def delListener(string key) (
+      void self.listeners.delete(key)
+    )
+    
+    def sendListeners(string ev, data) (
+      local list @= self.listeners.getValues()
+      for i list.len (
+        void list[i][1](ev, data, list[i][2])
+      )
+    )
+  )
+  return __imports__f477f9b400e164d253c3bfeb6a54c186
+case "./src/shared/tab_worker.osl"
+  class __imports__ed11349f32bd7389fac05d89b56e016d (
+    def oncreate() (
+      self.ouid = OuidNew()
+    )
+    
+    def onframe() (
+      if self.parseText != null (
+        local parser @= rwl.ast.Parser(self.parseText)
+        if self != null and self.document != null (
+          //log self
+          void self.document.loadAst(parser.parse())
+          self.parseText = null
+        )
+      )
+      if self.document != null and self.document.focused (
+        void self.document.rwlInst.interactUpdate({
+          rtr: self.document.rtrInst
+        })
+        void self.document.rtrUpdate()
+        //void self.document.rwlInst.checkElemUpdate()
+        local mods @= self.document.rtrInst.modules.getValues()
+        for i mods.len (
+          void mods[i].runEventQueue()
+        )
+        void shared.input.reset()
+      )
+    )
+  )
+  return __imports__ed11349f32bd7389fac05d89b56e016d
+case "./src/shared/config.osl"
+  class __imports__9f198a2aa8925b082e5f887a2bba9b67 (
+    class net (
+      servers = {
+        rtr: {
+          url: "https://web.rotur.dev/",
+          
+          // <server>/<command>
+          commands: {
+            tlds: "tlds"
+          }
+        }
+      }
+      
+      def refresh() (
+        if shared.settings.get("net", "offline") (
+          self.servers @= []
+        )
+        
+        for i self.servers.len (
+          local s @= self.servers.getValues()[i]
+          s.tlds @= (s.url ++ s.commands.tlds).httpGet()
+        )
+      )
+    )
+    
+    class url (
+      string browser_scheme = build.package.phosphorus.browser_scheme ?? "phos"
+      
+      class defaults (
+        string scheme = "rtr"
+        string name = "unknown"
+        string top = "web"
+      )
+    )
+    
+    class browser (
+      string name = build.package.name ?? "phosphorus"
+      array developers = build.package.developers ?? ["flufi"]
+      string version = build.package.version ?? "1.0.0a"
+      
+      // browserName@developer
+      string save_developer = build.package.save_developer ?? "rotur"
+      
+      class phosphorus (
+        string version = "1.0.0a"
+        
+        boolean useCanvas = false
+        boolean useCompiler = true
+        boolean useJsAstGen = true
+      )
+    )
+    
+    // disable js ast gen if phosphorus doesnt have the permission
+    if !window.permissions.contains("javascript") (
+      browser.phosphorus.useJsAstGen = false
+    )
+  )
+  return __imports__9f198a2aa8925b082e5f887a2bba9b67
+case "./src/shared/theme.osl"
+  class __imports__5876b7f6fcd5ce7f0fafd1a44ec4bd74 (
+    def load() (
+      self.back = user.theme.background
+      self.prim = user.theme.primary
+      self.seco = user.theme.secondary
+      self.tert = user.theme.tertiary
+      self.text = user.theme.text
+      self.accent = global_accent
+    )
+    
+    load()
+  )
+  return __imports__5876b7f6fcd5ce7f0fafd1a44ec4bd74
+case "./src/shared/url.osl"
+  class __imports__a1d00c2cd890aa6e92598446ff24f924 (
+    class Url (
+      def init(string text) (
+        void self.parse(text)
+      )
+      
+      def parse(string text) (
+        self.text = text
+        local s @= text.match("/^((\\w+):\\/\\/)/")
+        local match @= text.match("/^((\\w+):\\/\\/)?(((\\w+)\\.)?(\\w+)(\\.(\\w+))?\\/?(([\\/w]+)?(\\/(\\w+\\.\\w+))?))\\/?/")
+        
+        self.scheme = match[3] ?? s[3] ?? shared.config.url.defaults.scheme
+        
+        if self.scheme == "local" (
+          self.domain_name = text.trim("local://".len + 1, -1)
+          local usrPath = "origin/(c) users/" ++ username
+          if self.domain_name.toLower().startsWith(usrPath.toLower()) (
+            self.domain_name = "~" ++ self.domain_name.trim(usrPath.len + 1, -1)
+          )
+          self.domain_top = null
+          self.domain_sub = null
+          self.path = null
+          self.params @= {}
+          self.resource = null
+          self.text = "local://" ++ self.domain_name
+          return
+        )
+        
+        if match[9] != null (
+          local domain_name = match[7]
+          local domain_top = match[9]
+          local domain_sub = match[6]
+        ) else (
+          if match[6] != null (
+            local domain_name = match[6]
+            local domain_top = match[7]
+            local domain_sub = null
+          ) else (
+            local domain_name = match[7]
+            local domain_top = null
+            local domain_sub = null
+          )
+        )
+        
+        self.domain_name = domain_name ?? shared.config.url.defaults.name
+        self.domain_top = domain_top ?? shared.config.url.defaults.top
+        self.domain_sub = domain_sub
+        self.path = match[13]
+        self.params @= {}
+        self.resource = match[10] ?? "index.rwl"
+        
+        if self.scheme == shared.config.url.browser_scheme (
+          self.domain_top = null
+        )
+      )
+      
+      def format() (
+        if self.scheme == "local" (
+          return self.text
+        )
+        local sub = self.domain_sub != null ? self.domain_sub ++ "." ""
+        local top = self.domain_top != null ? "." ++ self.domain_top ""
+        local txt = self.scheme ++ "://" ++ sub ++ domain_name ++ top
+        if self.path != null (
+          txt ++= "/" ++ self.path
+        )
+        if self.resource != "index.rwl" (
+          txt ++= "/" ++ self.resource
+        )
+        return txt
+      )
+      
+      def getTitle() (
+        if self.scheme == "local" (
+          return self.domain_name.split("/")[-1].split(".")[1]
+        )
+        return self.domain_name
+      )
+    )
+  )
+  return __imports__a1d00c2cd890aa6e92598446ff24f924
+case "./src/shared/tab.osl"
+  class __imports__0ffc38803b2c8e6e0623c0ea1ffbcc28 (
+    class Tab (
+      def init(object document) (
+        self.document @= document
+      )
+      
+      def redirect(object url) (
+        void self.document.loadUrl(url)
+        void layouts.shared.state.updateTab()
+      )
+    )
+  )
+  return __imports__0ffc38803b2c8e6e0623c0ea1ffbcc28
+case "./src/shared/document.osl"
+  class __imports__af13446f70bd7836009892ffef4b5078 (
+    number i = 0
+    
+    class Document (
+      def init() (
+        void self.createInsts()
+        
+        self.started = false
+        self.shouldBeAlive = false
+        self.focused = false
+        
+        self.vars @= rtr.value.RTRObjValue({})
+        
+        self.documentI = shared.document.i
+        shared.document.i ++
+        
+        self.listener @= shared.input.addListener("doc" ++ documentI, def(string ev, data, doc) -> (
+          if doc.rwlInst != null (
+            void doc.rwlInst.interactEvent(ev, data, {
+              rtr: doc.rtrInst
+            })
+          )
+        ), self)
+      )
+      
+      def close() (
+        void self.killWorker()
+      )
+      
+      def createWorker() (
+        //log "create worker"
+        void self.killWorker()
+        self.worker @= worker(shared.tab_worker)
+        self.worker.document @= self
+        self.shouldBeAlive = true
+      )
+      
+      def killWorker() (
+        if self.worker != null (
+          //log "kill worker"
+          if self.worker.kill == null (
+            return
+          )
+          void self.worker.kill()
+          self.worker = null
+          self.shouldBeAlive = false
+        )
+      )
+      
+      def createInsts() (
+        self.title = "New Tab"
+        if self.url != null (
+          self.title = self.url.getTitle()
+        )
+        self.icon = null
+        
+        self.rtrInst @= rtr.main.RTR()
+        self.rwlInst @= rwl.main.RWL(shared.document.empty, self.rtrInst)
+      )
+      
+      def updateInsts() (
+        // inject apis
+        void rtr.apis.main.addToInst(self, self.rtrInst)
+      )
+      
+      def update(array area) (
+        void self.rwlInst.update(area)
+      )
+      
+      def rtrUpdate() (
+        if !self.started and self.rwlInst.hasUpdated (
+          void self.rtrInst.startModules()
+          self.started = true
+        )
+      )
+      
+      def render(array area) (
+        if self.worker != null (
+          self.worker.area @= area
+          if !self.worker.alive and self.shouldBeAlive (
+            //void self.createWorker()
+            //self.rwlInst.errored = true
+            //self.rwlInst.errormsg = "tab worker died, check js console"
+          )
+        )
+        
+        goto rwl.area.centerX(area) rwl.area.centerY(area)
+        square rwl.area.width(area) - 10 rwl.area.height(area) - 10 10 : c#shared.theme.back
+        
+        if self.loading (
+          goto rwl.area.centerX(area) rwl.area.centerY(area)
+          direction timer * 720
+          icon "sync" .75 : c#shared.theme.text
+          direction 90
+          return
+        )
+        
+        //log self.rwlInst
+        void self.rwlInst.render(area)
+      )
+      
+      def checkResp() (
+        if self.resp == null (
+          self.loading = false
+          return
+        )
+        
+        if self.resp.isFinished (
+          if self.resp.isValid (
+            self.loading = false
+            
+            void self.createInsts()
+            void self.loadText(self.resp.content)
+            
+            self.resp = null
+          )
+        ) else (
+          self.loading = true
+          void self.resp.update()
+        )
+      )
+      
+      def loadAst(object ast) (
+        void self.createInsts()
+        void self.rwlInst.loadFromAst(ast)
+        void self.updateInsts()
+        self.started = false
+      )
+      
+      def loadText(string text) (
+        void self.createWorker()
+        self.worker.parseText = text
+      )
+      
+      def loadUrl(object url) (
+        self.url @= url
+        void self.createInsts()
+        self.resp @= net.fetch.url(url)
+      )
+      
+      def getIcon() (
+        return self.icon
+      )
+      def getTitle() (
+        return self.title
+      )
+    )
+    
+    def init() (
+      local parser @= rwl.ast.Parser(import("./src/assets/empty.rwl"))
+      self.empty @= parser.parse()
+    )
+  )
+  return __imports__af13446f70bd7836009892ffef4b5078
+case "./src/shared/utils.osl"
+  class __imports__ace3e4fea1b83d3f4a6cf8da09fee544 (
+    def removeIndents(str) (
+      local lines @= str.split("\n")
+      local indent = null
+      for i lines.len (
+        local l2 = lines[i].match("/^( *)(.+)$/")
+        if l2[2].len > 0 (
+          indent = min(indent ?? 9999, l2[2].len)
+        )
+      )
+      for i lines.len (
+        lines[i] = lines[i].trim(indent + 1, -1)
+      )
+      return lines.join("\n")
+    )
+    
+    def jsFunc(string js) (
+      local f @= js.eval()
+      local f2 @= () -> ()
+      f2.code @= f
+      return f2
+    )
+  )
+  return __imports__ace3e4fea1b83d3f4a6cf8da09fee544
+case "./src/shared/graphics.osl"
+  class __imports__8840a5e065c53e817186a2216f863bca (
+    _canvasID = null
+    _canvas = null
+    
+    def init() (
+      if shared.config.browser.phosphorus.useCanvas (
+        self._canvasID = OuidNew()
+        self._canvas @= shared.canvas.createCanvas(self._canvasID, window.width, window.height)
+        log self
+      )
+    )
+    
+    // cursor
+    cursor_x = 0
+    cursor_y = 0
+    def goto(number x, number y) (
+      self.cursor_x = x
+      self.cursor_y = y
+    )
+    
+    def change_x(number x) (
+      self.cursor_x += x
+    )
+    def change_y(number y) (
+      self.cursor_y += y
+    )
+    def change(number x, number y) (
+      self.cursor_x += x
+      self.cursor_y += y
+    )
+    
+    // utils
+    def getTextWidth(string text) (
+      return text.len
+    )
+    
+    // rendering
+    def box(array area, string color) (
+      c color
+      pen "size" 1
+      goto area[1] area[2]
+      pen "down"
+      goto area[3] area[2]
+      goto area[3] area[4]
+      goto area[1] area[4]
+      goto area[1] area[2]
+      pen "up"
+    )
+    
+    def filledBox(array area, rounding, string color) (
+      local x = rwl.area.centerX(area)
+      local y = rwl.area.centerY(area)
+      local w = rwl.area.width(area)
+      local h = rwl.area.height(area)
+      
+      if typeof(rounding) == "number" (
+        rounding @= [rounding,rounding,rounding,rounding]
+      )
+      
+      c color
+      
+      if typeof(rounding) == "number" (
+        goto x y
+        frame area[1] area[4] area[3] area[2] (
+          local r = max(rounding * 2 - 10, 0)
+          square w - r h - r r
+        )
+      ) else if typeof(rounding) == "array" (
+        // could rework this to have it be corner - rounding for pos
+        // so it would have higher parity with canvas?
+        x = round(x)
+        y = round(y)
+        local hw = w / 2
+        local hh = h / 2
+        goto x y
+        //local r = min(rounding[1] * 2, min(w, h) / 2)
+        frame area[1] y x area[2] (
+          local r = max(rounding[1] * 2, 0)
+          goto frame.left + hw frame.bottom + hh
+          square frame.width * 2 - r frame.height * 2 - r r
+        )
+        frame x y area[3] area[2] (
+          local r = max(rounding[2] * 2, 0)
+          goto frame.right - hw frame.bottom + hh
+          square frame.width * 2 - r frame.height * 2 - r r
+        )
+        frame area[1] area[4] x y (
+          local r = max(rounding[3] * 2, 0)
+          goto frame.left + hw frame.top - hh
+          square frame.width * 2 - r frame.height * 2 - r r
+        )
+        frame x area[4] area[3] y (
+          local r = max(rounding[4] * 2, 0)
+          goto frame.right - hw frame.top - hh
+          square frame.width * 2 - r frame.height * 2 - r r
+        )
+      )
+    )
+    
+    def filledTransparentArea(array area, string color, number opacity) (
+      frame area[1] area[4] area[3] area[2] (
+        c color
+        pen "opacity" opacity
+        pen "size" 9999
+        goto 0 0
+        pen "down"
+        pen "up"
+      )
+    )
+    
+    def ctext(string text, number size, string color) (
+      void ptext(text, self.cursor_x, self.cursor_y, size, color)
+    )
+    def ptext(string text, number x, number y, number size, string color) (
+      goto x y
+      text text size : c#color
+    )
+    
+    def cicon(string src, number size, string color) (
+      void picon(text, self.cursor_x, self.cursor_y, size, color)
+    )
+    def picon(string src, number x, number y, number size, string color) (
+      goto x y
+      icon src size : c#color
+    )
+  )
+  return __imports__8840a5e065c53e817186a2216f863bca
 case "./sidebartest.rwl"
   return "  root {\n    frame [Horizontal, id=\"bleh\"] {\n      section [\n        id=\"sidebar\",\n        size=150, color=theme:prim,\n        rounding_tr=17.5, rounding_br=17.5,\n        padding=10\n      ] {},\n      section {\n      }\n    },\n    \n    script {\n      event(onload) {\n        i := 0;\n        createSidebarButton := (name) ~ {\n          i = i + 1;\n          elem := document.createContainer(\"button\");\n          elem.height = 35;\n          elem.padding = 10;\n          elem.color = theme.seco;\n          elem.hover_color = theme.tert;\n          elem.rounding = 10;\n          elem.id = \"btn\" + i;\n          if (i == 1)\n            elem.anchor = \"t\";\n          elem.margin_b = 10;\n          document.getElement(\"sidebar\").addChild(elem);\n          \n          script := document.createScript(\"event(#\" + elem.id + \":click) {\\n  log(\\\"\" + name + \" clicked!\\\");\\n}\\n\");\n          document.root.addChild(script);\n          \n          text := document.createTextElement(name);\n          text.color = theme.text;\n          elem.addChild(text);\n        };\n        \n        btns := [\n          \"hi\",\n          \"wow\",\n          \"blehh\",\n          \"fr\"\n        ];\n        \n        for (btn, btns) {\n          log(btn);\n          createSidebarButton(btn);\n        }\n      }\n    }\n  }"
 
@@ -7026,6 +7357,24 @@ import as "glass" from "packages"
 // fpp boilerplate
 
 
+
+object shared @= {
+  graphics: import("./src/shared/graphics.osl"),
+  utils: import("./src/shared/utils.osl"),
+  document: import("./src/shared/document.osl"),
+  tab: import("./src/shared/tab.osl"),
+  url: import("./src/shared/url.osl"),
+  theme: import("./src/shared/theme.osl"),
+  config: import("./src/shared/config.osl"),
+  tab_worker: import("./src/shared/tab_worker.osl"),
+  input: import("./src/shared/input.osl"),
+  settings: import("./src/shared/settings.osl"),
+  save: import("./src/shared/save.osl")
+}
+
+object js @= {
+  ast: shared.utils.jsFunc(import("./src/js/ast.js"))
+}
 
 object rwl @= {
   main: import("./src/rwl/main.osl"),
@@ -7052,20 +7401,6 @@ rtr.apis @= {
   main: import("./src/rtr/apis/main.osl"),
   rwl: import("./src/rtr/apis/rwl.osl"),
   browser: import("./src/rtr/apis/browser.osl")
-}
-
-object shared @= {
-  graphics: import("./src/shared/graphics.osl"),
-  utils: import("./src/shared/utils.osl"),
-  document: import("./src/shared/document.osl"),
-  tab: import("./src/shared/tab.osl"),
-  url: import("./src/shared/url.osl"),
-  theme: import("./src/shared/theme.osl"),
-  config: import("./src/shared/config.osl"),
-  tab_worker: import("./src/shared/tab_worker.osl"),
-  input: import("./src/shared/input.osl"),
-  settings: import("./src/shared/settings.osl"),
-  save: import("./src/shared/save.osl")
 }
 
 object layouts @= {
@@ -7115,7 +7450,9 @@ object browserPages @= {
 }
 
 void shared.settings.load()
-void shared.config.net.refresh()
+void Promise.new(() -> (
+  void shared.config.net.refresh()
+))
 
 void layouts.chromeLike.main.init()
 
@@ -7126,13 +7463,15 @@ if !build.built (
   //void document.loadUrl(shared.url.Url("local://./main.rwl"))
   void layouts.shared.state.openTabDocument(document)
   
-  local document2 @= shared.document.Document()
-  void document2.loadUrl(shared.url.Url("local://./test.rwl"))
-  void layouts.shared.state.openTabDocument(document2)
-  
-  local document3 @= shared.document.Document()
-  void document3.loadUrl(shared.url.Url("local://./sidebartest.rwl"))
-  void layouts.shared.state.openTabDocument(document3)
+  if false (
+    local document2 @= shared.document.Document()
+    void document2.loadUrl(shared.url.Url("local://./test.rwl"))
+    void layouts.shared.state.openTabDocument(document2)
+    
+    local document3 @= shared.document.Document()
+    void document3.loadUrl(shared.url.Url("local://./sidebartest.rwl"))
+    void layouts.shared.state.openTabDocument(document3)
+  )
 ) else (
   local document3 @= shared.document.Document()
   void document3.loadUrl(shared.url.Url(shared.config.url.browser_scheme ++ "://home"))
@@ -7141,7 +7480,7 @@ if !build.built (
 
 void layouts.shared.state.selectTab(1)
 
-void window.resize(900,500)
+void window.resize(1200,600)
 
 currentLayout = build.package.phosphorus.layout ?? "chromeLike"
 

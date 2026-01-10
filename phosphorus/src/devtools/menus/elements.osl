@@ -22,12 +22,15 @@ def drawElement(object element) (
     self.y -= 15
     goto 0 self.y
     
-    c shared.theme.seco
-    pen "opacity" 25 - min(performance - (element.updateTime ?? 0), 25)
-    frame frame.left y + 15 frame.right y - 15 (
-      pen "size" 1000
-      pen "down"
-      pen "up"
+    // looks odd to me, dont know why
+    if false (
+      c shared.theme.seco
+      pen "opacity" 25 - min(performance - (element.updateTime ?? 0), 25)
+      frame frame.left y + 15 frame.right y - 15 (
+        pen "size" 1000
+        pen "down"
+        pen "up"
+      )
     )
     
     element.dvt_open ??= false or true
@@ -65,8 +68,11 @@ def drawElement(object element) (
       if element.kind == "script" (
         local content = element.body
         local lines @= content.split("\n")
+        if lines[-1] == "" (
+          void lines.pop()
+        )
         local line_height = 25
-        local height = lines.len - 1 * line_height + 5
+        local height = lines.len * line_height + 5
         
         local cy = self.y - 2.5
         self.y -= height
@@ -107,13 +113,16 @@ def drawElement(object element) (
   ) else if element.kind == "element" (
     self.y -= 15
     
-    goto 0 self.y
-    c shared.theme.seco
-    pen "opacity" 25 - min(performance - (element.updateTime ?? 0), 25)
-    frame frame.left y + 15 frame.right y - 15 (
-      pen "size" 1000
-      pen "down"
-      pen "up"
+    // looks odd to me, dont know why
+    if false (
+      goto 0 self.y
+      c shared.theme.seco
+      pen "opacity" 25 - min(performance - (element.updateTime ?? 0), 25)
+      frame frame.left y + 15 frame.right y - 15 (
+        pen "size" 1000
+        pen "down"
+        pen "up"
+      )
     )
     
     goto self.x self.y

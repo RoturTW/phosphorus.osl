@@ -124,16 +124,28 @@ class RTRNumValue extends RTRLiteralValue (
     return self.value > 0
   )
   def arrify() (
-    return self.value.toStr().split("").map(e -> rtr.value.RTRStrValue(e))
+    return self.stringify().split("").map(e -> rtr.value.RTRStrValue(e))
   )
   def length() (
-    return self.value.toStr().length
+    return self.stringify().length
   )
   def getItem(index) (
-    return self.value.toStr()[index.numbify() + 1]
+    return self.stringify()[index.numbify() + 1]
   )
   def isEqual(other) (
     return self.getRtrType().isEqual(other.getRtrType()) and self.value === other.value
+  )
+)
+
+class RTRPercentageValue extends RTRNumValue (
+  def getRtrType() (
+    return rtr.value.RTRTypeValue({
+      name: "percentage"
+    })
+  )
+  
+  def stringify() (
+    return self.value.toStr() ++ "%"
   )
 )
 
@@ -266,7 +278,7 @@ class RTRNullValue extends RTRValue (
     return false
   )
   def isEqual(other) (
-    return self.getRtrType().isEqual(other.getRtrType()) and self.value === other.value
+    return self.getRtrType().isEqual(other.getRtrType())
   )
 )
 

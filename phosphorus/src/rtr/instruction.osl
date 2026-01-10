@@ -17,6 +17,9 @@ def jumpNotIf(string label) (
 def callOp(number amount) (
   return { kind: "call", args: amount }
 )
+def callEv(string name) (
+  return { kind: "callEv", name }
+)
 def unary(string op) (
   return { kind: "unary", op }
 )
@@ -39,6 +42,9 @@ def str(string data) (
 )
 def num(number data) (
   return { kind: "num", data }
+)
+def percentage(number data) (
+  return { kind: "percentage", data }
 )
 def bool(boolean data) (
   return { kind: "bool", data }

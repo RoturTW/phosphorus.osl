@@ -6,7 +6,7 @@ def oncreate() (
 def onframe() (
   if self.parseText != null (
     local parser @= rwl.ast.Parser(self.parseText)
-    if self != null (
+    if self != null and self.document != null (
       //log self
       void self.document.loadAst(parser.parse())
       self.parseText = null

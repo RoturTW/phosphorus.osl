@@ -4,6 +4,24 @@ import as "glass" from "packages"
 __import @= import;import @= i -> (i.endsWith(".osl") ? __import(i) open(i))
 build ??= { built: false, package: import("./opal.json").JsonParse() }
 
+object shared @= {
+  graphics: import("./src/shared/graphics.osl"),
+  utils: import("./src/shared/utils.osl"),
+  document: import("./src/shared/document.osl"),
+  tab: import("./src/shared/tab.osl"),
+  url: import("./src/shared/url.osl"),
+  theme: import("./src/shared/theme.osl"),
+  config: import("./src/shared/config.osl"),
+  tab_worker: import("./src/shared/tab_worker.osl"),
+  input: import("./src/shared/input.osl"),
+  settings: import("./src/shared/settings.osl"),
+  save: import("./src/shared/save.osl")
+}
+
+object js @= {
+  ast: shared.utils.jsFunc(import("./src/js/ast.js"))
+}
+
 object rwl @= {
   main: import("./src/rwl/main.osl"),
   config: import("./src/rwl/config.osl"),
@@ -29,20 +47,6 @@ rtr.apis @= {
   main: import("./src/rtr/apis/main.osl"),
   rwl: import("./src/rtr/apis/rwl.osl"),
   browser: import("./src/rtr/apis/browser.osl")
-}
-
-object shared @= {
-  graphics: import("./src/shared/graphics.osl"),
-  utils: import("./src/shared/utils.osl"),
-  document: import("./src/shared/document.osl"),
-  tab: import("./src/shared/tab.osl"),
-  url: import("./src/shared/url.osl"),
-  theme: import("./src/shared/theme.osl"),
-  config: import("./src/shared/config.osl"),
-  tab_worker: import("./src/shared/tab_worker.osl"),
-  input: import("./src/shared/input.osl"),
-  settings: import("./src/shared/settings.osl"),
-  save: import("./src/shared/save.osl")
 }
 
 object layouts @= {
@@ -92,7 +96,9 @@ object browserPages @= {
 }
 
 void shared.settings.load()
-void shared.config.net.refresh()
+void Promise.new(() -> (
+  void shared.config.net.refresh()
+))
 
 void layouts.chromeLike.main.init()
 
@@ -120,7 +126,7 @@ if !build.built (
 
 void layouts.shared.state.selectTab(1)
 
-void window.resize(900,500)
+void window.resize(1200,600)
 
 currentLayout = build.package.phosphorus.layout ?? "chromeLike"
 

@@ -46,5 +46,11 @@ class browser (
     
     boolean useCanvas = false
     boolean useCompiler = true
+    boolean useJsAstGen = true
   )
+)
+
+// disable js ast gen if phosphorus doesnt have the permission
+if !window.permissions.contains("javascript") (
+  browser.phosphorus.useJsAstGen = false
 )

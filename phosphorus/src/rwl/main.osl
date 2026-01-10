@@ -924,12 +924,16 @@ class RWLElement extends RWLNode (
 class RWLIcon extends RWLNode (
   kind = "icon"
   
+  def init(object header) (
+    self.header @= header
+  )
+  
   def update(array area, object context) (
     local scale @= self.expectOnHeader("scale", "num")
     if scale.isError (
       return scale
     )
-    self.scale = size.value ?? 1
+    self.scale = scale.value ?? 1
     
     local src @= self.expectOnHeader("src", "str")
     if src.isError (
@@ -957,12 +961,10 @@ class RWLIcon extends RWLNode (
       return
     )
     
-    void shared.graphics.picon(self.src, self.x, self.y, self.scale, self.color ?? "#fff")
+    if self.src != null (
+      void shared.graphics.picon(self.src, self.x, self.y, self.scale, self.color ?? "#fff")
+    )
     void self.renderDevtools()
-  )
-  
-  def init(object header) (
-    self.header @= header
   )
 )
 

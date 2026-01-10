@@ -9,6 +9,8 @@ class Document (
     self.shouldBeAlive = false
     self.focused = false
     
+    self.vars @= rtr.value.RTRObjValue({})
+    
     self.documentI = shared.document.i
     shared.document.i ++
     

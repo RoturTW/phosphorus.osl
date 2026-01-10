@@ -1,9 +1,10 @@
 
-open_width = 250
+number width = 250
+number x = 0
+number tar_x = 0
 
-width = 200
-tar_width = open_width
-open = true
+boolean open = true
+boolean grabbing = false
 
 def update(array area) (
   goto rwl.area.centerX(area) rwl.area.centerY(area)
@@ -92,8 +93,18 @@ def update(array area) (
   )
   self.height = startY - y - 7.5
   
-  // clicking on the left side of the window opens the sidebar
-  if self.width < 25 (
+  if self.open (
+    // resize sidebar
+    goto window.left + self.x + self.width
+    square 20 window.height 0 0 1
+    if mouse_touching (
+      cursor "col-resize"
+      if onclick (
+        self.grabbing = true
+      )
+    )
+  ) else (
+    // clicking on the left side of the window opens the sidebar
     goto window.left 0
     square 20 window.height 0 0 1
     if mouse_touching (
@@ -104,6 +115,21 @@ def update(array area) (
     )
   )
   
-  self.tar_width = self.open ? self.open_width 5
-  self.width += self.tar_width - self.width * min(delta_time, 0.02) * 10
+  if self.grabbing (
+    cursor "col-resize"
+    self.width = mouse_x - window.left + self.x
+    if !mouse_down (
+      self.grabbing = false
+    )
+  )
+  
+  local maxW = window.width - 200
+  if devtools and devtools.main.open (
+    maxW -= 200
+  )
+  self.width = min(self.width, maxW)
+  self.width = max(self.width, 200)
+  
+  self.tar_x = self.open ? 0 -self.width
+  self.x += self.tar_x - self.x * min(delta_time * 3, .02) * 10
 )

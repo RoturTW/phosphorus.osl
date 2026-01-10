@@ -1,19 +1,31 @@
 root {
   frame [Horizontal, color=theme:prim] {
-    section [id="sidebar", size=150] {
+    section [
+      id="sidebar",
+      size=150
+    ] {
       
     },
     section {
       frame [Vertical] {
-        section [size=40, padding=10] {
+        section [
+          size=40, padding=10
+        ] {
           "loading..." [
             id="location",
             color=theme:text,
             size=12, anchor="l"
           ]
         },
-        section [color=theme:back, rounding_tl=10] {
-          
+        section [
+          color=theme:back, rounding_tl=10
+        ] {
+          frame [
+            Vertical,
+            id="content"
+          ] {
+            
+          }
         }
       }
     }
@@ -21,14 +33,18 @@ root {
   
   script {
     event(onload) {
-      setLocation := (text) ~ {
-        document.getElement("location").text = text;
+      document.vars.setLocation = (name) ~ {
+        document.getElement("location").text = toTitle(name);
+        document.vars.location = name;
+        call(onPageUpdate);
       };
-      setLocation("bleh");
+      
+      categories := $$brwsr.settings.getCategories();
       
       sidebar := document.getElement("sidebar");
       
-      categories := $$brwsr.settings.getCategories();
+      document.vars.setLocation(categories[0]);
+      
       i := 0;
       for (category, categories) {
         i += 1;
@@ -52,15 +68,115 @@ root {
         
         buttonElem.addChild(titleElem);
         script := document.createScript(join(
-          "setLocation := (text) ~ {document.getElement(\"location\").text = text;};\n",
           "event(#" + buttonElem.id + ":click) {\n",
-          "  setLocation(\"" + buttonElem.id + "\");\n",
+          "  document.vars.setLocation(\"" + category + "\");\n",
           "}\n"
         ));
         buttonElem.addChild(script);
         
         sidebar.addChild(buttonElem);
       }
+    }
+    
+    event(onPageUpdate) {
+      i = 0;
+      
+      document.vars.callbacks = {};
+      document.vars.valuefunctions = {};
+      
+      generateProperty := (name, type, value, callback) ~ {
+        parent := document.getElement("content");
+        
+        container := document.createContainer("frame");
+        container.addFlag("Horizontal");
+        container.height = 50;
+        container.padding = 10;
+        parent.addChild(container);
+        
+        nameSection := document.createContainer("section");
+        nameSection.size = 50%;
+        nameSection.padding = 15;
+        
+        nameElem := document.createTextElement(toTitle(name));
+        nameElem.anchor = "l";
+        nameElem.color = theme.text;
+        nameSection.addChild(nameElem);
+        
+        container.addChild(nameSection);
+        
+        container.addChild(generateValue(name, type, value, callback));
+      };
+      generateValue := (name, type, value, callback) ~ {
+        container := document.createContainer("section");
+        elem = null;
+        
+        if (type == "string") {
+          
+        } elif (type == "boolean") {
+          id := "boolean_" + (i += 1);
+          
+          elem = document.createContainer("frame");
+          elem.addFlag("Horizontal");
+          elem.addFlag("Flipped");
+          
+          section := document.createContainer("section");
+          section.width = 50;
+          section.padding = 10;
+          
+          button := document.createContainer("button");
+          button.height = 30;
+          button.color = theme.prim;
+          button.hover_color = theme.seco;
+          button.rounding = 10;
+          button.id = id;
+          section.addChild(button);
+          
+          if (value(name)) {
+            icon := document.createIconElement("home");
+            icon.color = theme.text;
+            icon.scale = 0.7;
+            button.addChild(icon);
+          }
+          
+          txt := "event(#" + id + ":click) {\n";
+          txt += "  document.vars.callbacks['" + id + "'](\n";
+          txt += "    '" + name + "',\n";
+          txt += "    '" + type + "',\n";
+          txt += "    document.vars.valuefunctions['" + id + "']('" + name + "')\n";
+          txt += "  );\n";
+          txt += "}";
+          
+          script := document.createScript(txt);
+          
+          section.addChild(script);
+          
+          elem.addChild(section);
+          
+          document.vars.callbacks[id] = callback;
+          document.vars.valuefunctions[id] = value;
+        } else {
+          elem = document.createTextElement("cannot have value of " + type);
+        }
+        
+        if (elem != null)
+          container.addChild(elem);
+        return(container);
+      };
+      
+      generateSettingPage := () ~ {
+        page := $$brwsr.settings.getPage(document.vars.location);
+        
+        props := page.props;
+        for(prop, props) {
+          generateProperty(prop.name, prop.type, (name) ~ {
+            return($$brwsr.settings.getProperty(document.vars.location, name));
+          }, (name, type, value) ~ {
+            log(":3", name, type, value);
+          });
+        }
+      };
+      
+      generateSettingPage();
     }
   }
 }

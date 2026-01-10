@@ -5,9 +5,53 @@ def addToMod(object doc, object mod) (
       getCategories: rtr.value.RTROslFuncValue(def() -> (
         return rtr.value.RTRArrValue(shared.settings.entries.getKeys().map(c -> rtr.value.RTRStrValue(c)))
       )),
-      getCategory: rtr.value.RTROslFuncValue(def() -> (
-      
-      ))
+      getPage: rtr.value.RTROslFuncValue(def(args) -> (
+        local category @= shared.settings.entries[args[1].stringify()]
+        if category == null (
+          return rtr.value.RTRNullValue()
+        )
+        return rtr.value.RTRObjValue({
+          props: rtr.value.RTRArrValue(category.getEntries().map(def(e) -> (
+            return rtr.value.RTRObjValue({
+              name: rtr.value.RTRStrValue(e[1]),
+              type: rtr.value.RTRStrValue(e[2].type),
+              desc: rtr.value.RTRStrValue(e[2].desc)
+            })
+          )))
+        })
+      )),
+      getProperty: rtr.value.RTROslFuncValue(def(args) -> (
+        local value @= shared.settings.get(args[1].stringify(), args[2].stringify())
+        return rtr.apis.browser.toRtr(value)
+      )),
+      setProperty: rtr.value.RTROslFuncValue(def(args) -> (
+        local value @= rtr.apis.browser.toRtr(args[3])
+        void shared.settings.set(args[1].stringify(), args[2].stringify(), value)
+      )),
     })
   }))
+)
+
+def toOsl(object value) (
+  local type @= val.getRtrType()
+  
+  switch type.data.name (
+    case "str"; case "num"; case "bool"
+      return val.value
+    default
+      throw "cannot convert" + type.data.name + "to osl"
+  )
+)
+
+def toRtr(value) (
+  switch typeof(value) (
+    case "string"
+      return rtr.value.RTRStrValue(value)
+    case "number"
+      return rtr.value.RTRNumValue(value)
+    case "boolean"
+      return rtr.value.RTRBoolValue(value)
+    default
+      throw "cannot convert" + typeof(value) + "to rtr"
+  )
 )

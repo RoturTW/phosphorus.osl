@@ -1,0 +1,6 @@
+event(onload) {
+  // :3
+  for (i, range(1,5)) {
+    log(i);
+  }
+}

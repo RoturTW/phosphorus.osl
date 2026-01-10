@@ -1,19 +1,36 @@
 
+local canUseJs = shared.config.browser.phosphorus.useJsAstGen
+jsVersion = canUseJs ? js.ast null
+
 class Parser (
   def init(string text, scriptLocation) (
     self.scriptLocation @= scriptLocation
-    void self.tokenise(text)
+    
+    self.text @= text
+    
+    if rtr.ast.jsVersion == null (
+      void self.tokenise(text)
+    )
   )
   
   def parse() (
-    self.pointer = 1
-    local out @= self.blockContent(true)
+    local start = performance
     
-    if !self.atEnd() (
-      throw "unexpected token" + self.peek()
+    if rtr.ast.jsVersion == null (
+      self.pointer = 1
+      local out @= self.blockContent(true)
+      
+      if !self.atEnd() (
+        throw "unexpected token" + self.peek()
+      )
+      
+      out @= { elements: out }
+    ) else (
+      local out @= rtr.ast.jsVersion(self.text)
     )
     
-    return { elements: out }
+    log "ast gen took" performance - start
+    return out
   )
   
   def peek(amount) (
@@ -26,6 +43,34 @@ class Parser (
     return tkn
   )
   def consumeWhitespace() (
+    local end = false
+    while !end and !self.atEnd() (
+      local tkn = self.peek()
+      
+      if self.peek() == "/" and self.peek(2) == "/" (
+        void self.consume()
+        void self.consume()
+        while self.consume() != "\n" and !self.atEnd() (;)
+      )
+      
+      if self.peek() == "/" and self.peek(2) == "*" (
+        void self.consume()
+        void self.consume()
+        while self.peek() ++ self.peek(2) != "*/" and !self.atEnd() (
+          void self.consume()
+        )
+        void self.consume()
+        void self.consume()
+      )
+      
+      if tkn.match("/^\\s$/") != null (
+        void self.consume()
+      ) else (
+        end = true
+      )
+    )
+  )
+  def consumeWhitespace2() (
     while self.peek().match("/^\\s$/") != null (
       void self.consume()
     )
@@ -315,6 +360,7 @@ class Parser (
       }
     )
     
+    local start @= self.getPos()
     local expr @= self.expression()
     if expr != null (
       void self.consumeWhitespace()
@@ -629,6 +675,18 @@ class Parser (
   
   def callExpr() (
     local start @= self.getPos()
+    if self.peek() == "call" and self.peek(2) == "(" (
+      void self.consume()
+      void self.expect("(")
+      local name = self.expectText()
+      void self.expect(")")
+      return {
+        kind: "call_event",
+        name,
+        start, end: self.getPos()
+      }
+    )
+    
     local expr @= self.func()
     
     if self.peek() == "(" (
@@ -824,6 +882,7 @@ class Parser (
       }
     )
     
+    error self.getPos()
     throw "unexpected token '" ++ self.peek() ++ "'"
   )
   
@@ -912,8 +971,9 @@ class Parser (
     local q @= self.expects(["'","\"","`"])
     local content = ""
     local end = false
-    while (!end) (
+    while !end (
       local tkn @= self.peek()
+      
       if tkn == "\\" (
         void self.consume()
         local tkn = self.consume()
@@ -960,10 +1020,16 @@ class Parser (
       val ++= self.consume()
     )
     
+    local kind = "num"
+    if self.peek() == "%" (
+      void self.consume()
+      kind = "percentage"
+    )
+    
     val @= val.toNum()
     
     return {
-      kind: "num",
+      kind,
       val,
       start, end: self.getPos()
     }

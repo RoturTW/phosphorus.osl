@@ -236,6 +236,11 @@ def compileExpression(object expression) (
       out ++= args
       out += rtr.instruction.callOp(expression.args.len)
       return out
+    case "call_event"
+      return [
+        rtr.instruction.callEv(expression.name),
+        rtr.instruction.null()
+      ]
     case "decl"
       local val @= compileExpression(expression.val)
       if typeof(val) != "array" and val.isError (
@@ -256,6 +261,7 @@ def compileExpression(object expression) (
           void out.append(rtr.instruction.asivar(expression.tar.name, expression.op))
           return out
         case "prop"
+          // should probably check errs :pensive:
           out ++= compileExpression(expression.tar.obj)
           if typeof(expression.tar.key) == "string" (
             out += rtr.instruction.str(expression.tar.key)
@@ -269,6 +275,9 @@ def compileExpression(object expression) (
       return [rtr.instruction.null()]
     case "unary"
       local val @= compileExpression(expression.expr)
+      if typeof(val) != "array" and val.isError (
+        return val
+      )
       
       local out @= []
       out ++= val
@@ -311,8 +320,14 @@ def compileExpression(object expression) (
       return [rtr.instruction.str(expression.val)]
     case "num"
       return [rtr.instruction.num(expression.val)]
+    case "percentage"
+      return [rtr.instruction.percentage(expression.val)]
     case "func"
-      return [rtr.instruction.func(compileStatement(expression.body), expression.args)]
+      local body @= compileStatement(expression.body)
+      if typeof(body) != "array" and body.isError (
+        return body
+      )
+      return [rtr.instruction.func(body, expression.args)]
     case "arr"
       local out @= []
       for i expression.elems.len (
@@ -333,7 +348,7 @@ def compileExpression(object expression) (
       return [rtr.instruction.color(expression.val)]
     
     default
-      log expression
+      log "expr:" expression
       return rtr.error.Error("UnknownExpressionKind", { kind: expression.kind })
   )
   
