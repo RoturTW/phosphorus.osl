@@ -12,7 +12,7 @@ Phosphorus is the main rotur web engine (eventually) powering browsers like summ
 # How to build locally
 * make sure [fpp](https://github.com/Flufi-Boi/fpp) is installed (in ~/:path)
 * go into terminal and navigate to your cloned version of phosphorus, e.g. ~/projects/phosphorus
-* run the command `fpp run build` or if you want just 1 layout, `fpp run build-layoutName`
+* run the command `fpp script build` or if you want just 1 layout, `fpp script build-layoutName`
 
 # Features
 
